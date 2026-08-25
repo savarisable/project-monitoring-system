@@ -1,0 +1,88 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#    https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+# ----------------------------------------------------------------------------
+
+PRG="$0"
+while [ -h "$PRG" ]; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "$PRG"`/"$link"
+  fi
+done
+BASE_DIR=`dirname "$PRG"`
+
+WRAPPER_DIR="$BASE_DIR/.mvn/wrapper"
+WRAPPER_JAR="$WRAPPER_DIR/maven-wrapper.jar"
+MAVEN_VERSION="3.9.6"
+MAVEN_DIST_DIR="$HOME/.m2/wrapper/dists/apache-maven-$MAVEN_VERSION-bin"
+
+if [ ! -d "$WRAPPER_DIR" ]; then
+  mkdir -p "$WRAPPER_DIR"
+fi
+
+if [ -d "$MAVEN_DIST_DIR" ]; then
+  for d in "$MAVEN_DIST_DIR"/*; do
+    if [ -x "$d/bin/mvn" ]; then
+      exec "$d/bin/mvn" "$@"
+    fi
+  done
+fi
+
+# Download and unzip maven distribution
+mkdir -p "$MAVEN_DIST_DIR"
+ZIP_FILE="$MAVEN_DIST_DIR/apache-maven-$MAVEN_VERSION-bin.zip"
+ZIP_URL="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$MAVEN_VERSION/apache-maven-$MAVEN_VERSION-bin.zip"
+
+echo "[mvnw] Preparing Apache Maven $MAVEN_VERSION..."
+if command -v curl >/dev/null 2>&1; then
+  curl -fsSL -o "$ZIP_FILE" "$ZIP_URL"
+elif command -v wget >/dev/null 2>&1; then
+  wget -q -O "$ZIP_FILE" "$ZIP_URL"
+fi
+
+if [ -f "$ZIP_FILE" ]; then
+  unzip -qo "$ZIP_FILE" -d "$MAVEN_DIST_DIR"
+  rm -f "$ZIP_FILE"
+fi
+
+for d in "$MAVEN_DIST_DIR"/*; do
+  if [ -x "$d/bin/mvn" ]; then
+    exec "$d/bin/mvn" "$@"
+  fi
+done
+
+# Fallback: Takari wrapper jar
+JAR_URL="https://repo.maven.apache.org/maven2/io/takari/maven-wrapper/0.5.6/maven-wrapper-0.5.6.jar"
+if [ ! -f "$WRAPPER_JAR" ]; then
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "$WRAPPER_JAR" "$JAR_URL"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$WRAPPER_JAR" "$JAR_URL"
+  fi
+fi
+
+if [ -f "$WRAPPER_JAR" ]; then
+  exec java -classpath "$WRAPPER_JAR" -Dmaven.multiModuleProjectDirectory="$BASE_DIR" org.apache.maven.wrapper.MavenWrapperMain "$@"
+fi
+
+echo "[mvnw] Error: Could not launch Maven."
+exit 1
