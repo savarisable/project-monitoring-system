@@ -4,7 +4,17 @@ import { useAuth } from '../../context/AuthContext';
 import { DataTable } from '../../components/DataTable';
 import { Modal } from '../../components/Modal';
 import { StatusBadge } from '../../components/StatusBadge';
-import { FolderPlus, Users, UserCheck, Plus, Check } from 'lucide-react';
+import {
+  FolderPlus,
+  Users,
+  UserCheck,
+  Plus,
+  Check,
+  Trash2,
+  UserMinus,
+  UserPlus,
+  AlertTriangle,
+} from 'lucide-react';
 
 export const GroupManagementPage = () => {
   const { selectedYearId } = useAuth();
@@ -13,6 +23,10 @@ export const GroupManagementPage = () => {
   const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [targetGroupForMember, setTargetGroupForMember] = useState(null);
+  const [selectedStudentToAdd, setSelectedStudentToAdd] = useState('');
+  const [isLeaderToAdd, setIsLeaderToAdd] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -87,66 +101,188 @@ export const GroupManagementPage = () => {
     }
   };
 
+  const handleDeleteGroup = async (group) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${group.groupNumber}"? This will unassign its members and remove associated project data.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.head.deleteGroup(group.id);
+      setMessage(`Group ${group.groupNumber} has been deleted.`);
+      loadData();
+    } catch (err) {
+      alert(err.message || 'Failed to delete group.');
+    }
+  };
+
+  const handleRemoveStudent = async (groupId, studentId, studentName, groupNum) => {
+    if (
+      !window.confirm(
+        `Remove student "${studentName}" from ${groupNum}? They will become unassigned and available for other groups.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.head.removeStudentFromGroup(groupId, studentId);
+      setMessage(`Student "${studentName}" removed from ${groupNum}.`);
+      loadData();
+    } catch (err) {
+      alert(err.message || 'Failed to remove student from group.');
+    }
+  };
+
+  const handleOpenAddMemberModal = (group) => {
+    setTargetGroupForMember(group);
+    setSelectedStudentToAdd('');
+    setIsLeaderToAdd(false);
+    setError('');
+    setIsAddMemberModalOpen(true);
+  };
+
+  const handleAddMemberSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedStudentToAdd) {
+      setError('Please select a student to add.');
+      return;
+    }
+    try {
+      await api.head.addStudentToGroup(
+        targetGroupForMember.id,
+        Number(selectedStudentToAdd),
+        isLeaderToAdd
+      );
+      setMessage(`Student added to ${targetGroupForMember.groupNumber} successfully.`);
+      setIsAddMemberModalOpen(false);
+      loadData();
+    } catch (err) {
+      setError(err.message || 'Failed to add student to group.');
+    }
+  };
+
   const availableStudents = students.filter((s) => !s.groupId);
 
   const columns = [
     {
       header: 'Group Number',
       accessor: 'groupNumber',
-      render: (g) => <strong>{g.groupNumber}</strong>,
+      render: (g) => <strong style={{ fontSize: '0.95rem' }}>{g.groupNumber}</strong>,
     },
     {
       header: 'Members (Students)',
       render: (g) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
           {g.members?.map((m) => (
-            <div key={m.id} style={{ fontSize: '0.8125rem' }}>
-              <span style={{ fontWeight: 600 }}>{m.fullName}</span> ({m.rollNumber})
-              {m.leader && (
-                <span className="badge badge-info" style={{ marginLeft: '6px', fontSize: '0.65rem' }}>
-                  Leader
-                </span>
-              )}
+            <div
+              key={m.id}
+              style={{
+                fontSize: '0.8125rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.5rem',
+                backgroundColor: 'var(--bg-subtle)',
+                padding: '0.25rem 0.5rem',
+                borderRadius: 'var(--radius-sm)',
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{m.fullName}</span>{' '}
+                <span style={{ color: 'var(--text-muted)' }}>({m.rollNumber})</span>
+                {m.leader && (
+                  <span className="badge badge-info" style={{ marginLeft: '6px', fontSize: '0.65rem' }}>
+                    Leader
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.15rem 0.4rem', color: '#ef4444', height: 'auto' }}
+                title="Remove from group"
+                onClick={() =>
+                  handleRemoveStudent(g.id, m.studentId || m.id, m.fullName, g.groupNumber)
+                }
+              >
+                <UserMinus size={12} />
+              </button>
             </div>
           ))}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.75rem', marginTop: '0.25rem', alignSelf: 'flex-start' }}
+            onClick={() => handleOpenAddMemberModal(g)}
+          >
+            <UserPlus size={13} /> Add Member
+          </button>
         </div>
       ),
     },
     {
       header: 'Allocated Guide',
-      render: (g) => (
+      render: (g) =>
         g.guide ? (
           <div>
-            <div style={{ fontWeight: 600 }}>{g.guide.fullName}</div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{g.guide.designation}</div>
+            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{g.guide.fullName}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{g.guide.designation}</div>
           </div>
         ) : (
-          <span style={{ color: '#ef4444', fontSize: '0.8125rem', fontWeight: 600 }}>No Guide Allocated</span>
-        )
-      ),
+          <span style={{ color: '#ef4444', fontSize: '0.8125rem', fontWeight: 600 }}>
+            No Guide Allocated
+          </span>
+        ),
     },
     {
       header: 'Registered Project',
-      render: (g) => (
+      render: (g) =>
         g.project ? (
           <div>
             <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{g.project.title}</div>
-            <div style={{ marginTop: '4px' }}><StatusBadge status={g.project.status} /></div>
+            <div style={{ marginTop: '4px' }}>
+              <StatusBadge status={g.project.status} />
+            </div>
           </div>
         ) : (
-          <span style={{ color: '#94a3b8', fontSize: '0.8125rem' }}>No project created</span>
-        )
+          <span style={{ color: 'var(--text-subtle)', fontSize: '0.8125rem' }}>No project created</span>
+        ),
+    },
+    {
+      header: 'Actions',
+      render: (g) => (
+        <button
+          className="btn btn-secondary btn-sm"
+          style={{ color: '#ef4444' }}
+          title="Delete Group"
+          onClick={() => handleDeleteGroup(g)}
+        >
+          <Trash2 size={14} /> Delete
+        </button>
       ),
     },
   ];
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Student Groups Management</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
+            Student Groups Management
+          </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-            Form project batches, designate team leaders, and assign faculty guides.
+            Form project batches, designate team leaders, manage members, and assign faculty guides.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
@@ -155,7 +291,17 @@ export const GroupManagementPage = () => {
       </div>
 
       {message && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            color: '#10b981',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1.25rem',
+            fontSize: '0.875rem',
+          }}
+        >
           {message}
         </div>
       )}
@@ -177,12 +323,22 @@ export const GroupManagementPage = () => {
       >
         <form onSubmit={handleCreateGroup}>
           {error && (
-            <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 'var(--radius-md)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                fontSize: '0.875rem',
+              }}
+            >
               {error}
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div className="form-group">
               <label className="form-label">Group Number / Code *</label>
               <input
@@ -213,10 +369,21 @@ export const GroupManagementPage = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Select Unassigned Students ({availableStudents.length} available)</label>
+            <label className="form-label">
+              Select Unassigned Students ({availableStudents.length} available)
+            </label>
             {availableStudents.length === 0 ? (
-              <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', color: '#64748b', fontSize: '0.875rem' }}>
-                All registered students in this academic year are already assigned to groups. Create student accounts first if needed.
+              <div
+                style={{
+                  padding: '1rem',
+                  backgroundColor: 'var(--bg-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.875rem',
+                }}
+              >
+                All registered students in this academic year are already assigned to groups.
               </div>
             ) : (
               <div
@@ -242,9 +409,9 @@ export const GroupManagementPage = () => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '0.5rem 0.75rem',
-                        backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
+                        backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'var(--bg-card)',
                         border: '1px solid',
-                        borderColor: isSelected ? '#bfdbfe' : 'var(--border-color)',
+                        borderColor: isSelected ? 'var(--primary-500)' : 'var(--border-color)',
                         borderRadius: 'var(--radius-sm)',
                         cursor: 'pointer',
                       }}
@@ -256,8 +423,8 @@ export const GroupManagementPage = () => {
                             width: '18px',
                             height: '18px',
                             borderRadius: '3px',
-                            border: '1px solid #94a3b8',
-                            backgroundColor: isSelected ? '#2563eb' : 'white',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: isSelected ? 'var(--primary-500)' : 'transparent',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -266,8 +433,12 @@ export const GroupManagementPage = () => {
                         >
                           {isSelected && <Check size={14} />}
                         </div>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.fullName}</span>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>({s.rollNumber})</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>
+                          {s.fullName}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          ({s.rollNumber})
+                        </span>
                       </div>
 
                       {isSelected && (
@@ -296,6 +467,84 @@ export const GroupManagementPage = () => {
             </button>
             <button type="submit" className="btn btn-primary" disabled={selectedStudentIds.length === 0}>
               Create Group ({selectedStudentIds.length} Students)
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Member to Existing Group Modal */}
+      <Modal
+        isOpen={isAddMemberModalOpen}
+        onClose={() => setIsAddMemberModalOpen(false)}
+        title={`Add Student to ${targetGroupForMember?.groupNumber}`}
+        maxWidth="500px"
+      >
+        <form onSubmit={handleAddMemberSubmit}>
+          {error && (
+            <div
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                fontSize: '0.875rem',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Select Unassigned Student *</label>
+            {availableStudents.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                No unassigned students available. Register new student accounts first.
+              </p>
+            ) : (
+              <select
+                className="form-control"
+                value={selectedStudentToAdd}
+                onChange={(e) => setSelectedStudentToAdd(e.target.value)}
+                required
+              >
+                <option value="">-- Choose Student --</option>
+                {availableStudents.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.fullName} ({s.rollNumber})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input
+              type="checkbox"
+              id="isLeaderAdd"
+              checked={isLeaderToAdd}
+              onChange={(e) => setIsLeaderToAdd(e.target.checked)}
+            />
+            <label htmlFor="isLeaderAdd" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>
+              Designate as Group Leader
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsAddMemberModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={!selectedStudentToAdd || availableStudents.length === 0}
+            >
+              Add to Group
             </button>
           </div>
         </form>

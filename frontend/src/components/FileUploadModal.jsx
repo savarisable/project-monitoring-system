@@ -1,25 +1,33 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertTriangle, Image, Video, Archive, Link as LinkIcon } from 'lucide-react';
 import { Modal } from './Modal';
 
 export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, currentVersion = 1, isResubmission = false }) => {
   const [file, setFile] = useState(null);
   const [studentNotes, setStudentNotes] = useState('');
+  const [demoLink, setDemoLink] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const isDevPhase = milestoneTitle?.toLowerCase().includes('development') || milestoneTitle?.toLowerCase().includes('phase');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) {
-      setError('Please select a file to upload (PDF, DOCX, PPTX).');
+    if (!file && !demoLink.trim()) {
+      setError('Please select a file to upload or provide a video/project link.');
       return;
     }
     setError('');
     setIsSubmitting(true);
     try {
-      await onUpload(file, studentNotes);
+      const combinedNotes = demoLink.trim()
+        ? (studentNotes.trim() ? `${studentNotes.trim()}\n\n[Project / Demo Video Link]: ${demoLink.trim()}` : `[Project / Demo Video Link]: ${demoLink.trim()}`)
+        : studentNotes.trim();
+
+      await onUpload(file, combinedNotes);
       setFile(null);
       setStudentNotes('');
+      setDemoLink('');
       onClose();
     } catch (err) {
       setError(err.message || 'Upload failed');
@@ -28,12 +36,27 @@ export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, cur
     }
   };
 
+  const getFileIcon = () => {
+    if (!file) return <Upload size={32} style={{ margin: '0 auto 0.75rem auto', color: 'var(--primary-600)' }} />;
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) {
+      return <Image size={24} style={{ color: '#0ea5e9', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
+    }
+    if (name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov')) {
+      return <Video size={24} style={{ color: '#8b5cf6', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
+    }
+    if (name.endsWith('.zip') || name.endsWith('.rar')) {
+      return <Archive size={24} style={{ color: '#f59e0b', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
+    }
+    return <FileText size={24} style={{ color: 'var(--primary-600)', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={isResubmission ? `Resubmit ${milestoneTitle} (Version ${currentVersion + 1})` : `Upload ${milestoneTitle}`}
-      maxWidth="550px"
+      maxWidth="580px"
     >
       <form onSubmit={handleSubmit}>
         {error && (
@@ -43,7 +66,9 @@ export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, cur
         )}
 
         <div className="form-group">
-          <label className="form-label">Select Document (PDF, DOC, DOCX, PPT, PPTX - Max 25MB)</label>
+          <label className="form-label">
+            {isDevPhase ? 'Select Project Deliverable (PDF, Photos, Demo Video, ZIP Code - Max 25MB)' : 'Select Document (PDF, DOCX, PPTX, Images - Max 25MB)'}
+          </label>
           <div
             style={{
               border: '2px dashed var(--border-color)',
@@ -55,11 +80,11 @@ export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, cur
             }}
             onClick={() => document.getElementById('file-input-modal').click()}
           >
-            <Upload size={32} style={{ margin: '0 auto 0.75rem auto', color: 'var(--primary-600)' }} />
+            {getFileIcon()}
             <input
               id="file-input-modal"
               type="file"
-              accept=".pdf,.doc,.docx,.ppt,.pptx"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.mp4,.webm,.zip,.rar"
               style={{ display: 'none' }}
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
@@ -70,16 +95,31 @@ export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, cur
             />
             {file ? (
               <div style={{ color: '#0f172a', fontWeight: 600 }}>
-                <FileText size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />
                 {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
               </div>
             ) : (
               <div>
-                <p style={{ fontWeight: 500, color: 'var(--text-main)' }}>Click to browse or drag and drop file here</p>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>Allowed formats: PDF (Recommended), DOCX, PPTX</p>
+                <p style={{ fontWeight: 600, color: 'var(--text-main)' }}>Click to browse or drag and drop file here</p>
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                  Supported: <strong>PDF, DOCX, PPTX, PNG/JPG (UI Photos), MP4 (Demo Video), ZIP</strong>
+                </p>
               </div>
             )}
           </div>
+        </div>
+
+        {/* Optional Demo Video / GitHub Link for Development Phases */}
+        <div className="form-group">
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <LinkIcon size={14} color="var(--primary-600)" /> Demo Video / Prototype / GitHub Link (Optional)
+          </label>
+          <input
+            type="url"
+            className="form-control"
+            placeholder="e.g. https://youtu.be/... or Google Drive video link or GitHub repository"
+            value={demoLink}
+            onChange={(e) => setDemoLink(e.target.value)}
+          />
         </div>
 
         <div className="form-group">
@@ -87,7 +127,7 @@ export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, cur
           <textarea
             className="form-control"
             rows="3"
-            placeholder="Add brief details about the changes or highlights of this version..."
+            placeholder="Add brief details about this milestone submission, changes made, or key highlights..."
             value={studentNotes}
             onChange={(e) => setStudentNotes(e.target.value)}
           ></textarea>
@@ -98,7 +138,7 @@ export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, cur
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Uploading...' : 'Submit Document'}
+            {isSubmitting ? 'Uploading...' : 'Submit Deliverable'}
           </button>
         </div>
       </form>

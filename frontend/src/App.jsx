@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Layout, ProtectedRoute } from './components/Layout';
 
 // Auth Pages
@@ -22,11 +23,13 @@ import { NoticesPage, ReportsPage, AuditLogsPage } from './pages/head/NoticesPag
 import { GuideDashboard, GuideGroupsPage } from './pages/guide/GuideDashboard';
 import { GuideSubmissionsPage, GuidePresentationsPage } from './pages/guide/GuideSubmissionsPage';
 import { GuideMeetingsPage, GuideNoticesPage, GuideStudentRequestsPage } from './pages/guide/GuideMeetingsPage';
+import { GuideDiaryPage } from './pages/guide/GuideDiaryPage';
 
 // Student Pages
 import { StudentDashboard, StudentGroupPage, StudentProjectPage } from './pages/student/StudentDashboard';
 import { StudentSubmissionsPage, StudentPresentationsPage } from './pages/student/StudentSubmissionsPage';
 import { StudentMeetingsPage, StudentNoticesPage, StudentRequestsPage } from './pages/student/StudentMeetingsPage';
+import { StudentDiaryPage } from './pages/student/StudentDiaryPage';
 
 const RootRedirect = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -48,8 +51,9 @@ const RootRedirect = () => {
 
 export const App = () => {
   return (
-    <AuthProvider>
-      <Router>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
         <Routes>
           {/* Public Login Route */}
           <Route path="/login" element={<LoginPage />} />
@@ -84,6 +88,7 @@ export const App = () => {
               <Route path="/guide/dashboard" element={<GuideDashboard />} />
               <Route path="/guide/my-groups" element={<GuideGroupsPage />} />
               <Route path="/guide/submissions" element={<GuideSubmissionsPage />} />
+              <Route path="/guide/diary" element={<GuideDiaryPage />} />
               <Route path="/guide/presentations" element={<GuidePresentationsPage />} />
               <Route path="/guide/meetings" element={<GuideMeetingsPage />} />
               <Route path="/guide/notices" element={<GuideNoticesPage />} />
@@ -96,6 +101,7 @@ export const App = () => {
               <Route path="/student/my-group" element={<StudentGroupPage />} />
               <Route path="/student/my-project" element={<StudentProjectPage />} />
               <Route path="/student/submissions" element={<StudentSubmissionsPage />} />
+              <Route path="/student/diary" element={<StudentDiaryPage />} />
               <Route path="/student/presentations" element={<StudentPresentationsPage />} />
               <Route path="/student/meetings" element={<StudentMeetingsPage />} />
               <Route path="/student/notices" element={<StudentNoticesPage />} />
@@ -108,5 +114,6 @@ export const App = () => {
         </Routes>
       </Router>
     </AuthProvider>
+  </ThemeProvider>
   );
 };

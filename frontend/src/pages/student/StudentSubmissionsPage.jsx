@@ -83,9 +83,12 @@ export const StudentSubmissionsPage = () => {
         {project?.milestones?.map((m) => {
           const sub = submissions.find((s) => s.projectMilestoneId === m.id);
           const isCorrectionRequired = sub?.status === 'CORRECTION_REQUIRED';
-          const isVerified = sub?.status === 'VERIFIED';
+          const isVerified = sub?.status === 'VERIFIED' || m.status === 'COMPLETED';
           const isSubmitted = sub?.status === 'ONLINE_SUBMITTED' || sub?.status === 'SUBMITTED' || sub?.status === 'RESUBMITTED';
           const latestVersion = sub?.versions?.[0];
+
+          const isGuideAllocation = m.title.toLowerCase().includes('guide allocation');
+          const isVerificationStage = m.title.toLowerCase().includes('verification') && !m.title.toLowerCase().includes('submission');
 
           return (
             <div
@@ -116,26 +119,38 @@ export const StudentSubmissionsPage = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {(!sub || isCorrectionRequired) && (
-                    <button
-                      className={`btn btn-${isCorrectionRequired ? 'danger' : 'primary'} btn-sm`}
-                      onClick={() => handleOpenUpload(m, sub)}
-                    >
-                      <Upload size={14} /> {isCorrectionRequired ? `Resubmit (Version ${(sub?.currentVersion || 1) + 1})` : 'Upload Document'}
-                    </button>
-                  )}
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  {isGuideAllocation ? (
+                    <span className="badge badge-success" style={{ padding: '0.35rem 0.65rem' }}>
+                      <CheckCircle2 size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Guide Allocated
+                    </span>
+                  ) : isVerificationStage ? (
+                    <span className={`badge ${isVerified ? 'badge-success' : 'badge-neutral'}`} style={{ padding: '0.35rem 0.65rem' }}>
+                      {isVerified ? '✓ Verified by Faculty' : '⏳ Guide Verification Step'}
+                    </span>
+                  ) : (
+                    <>
+                      {(!sub || isCorrectionRequired) && (
+                        <button
+                          className={`btn btn-${isCorrectionRequired ? 'danger' : 'primary'} btn-sm`}
+                          onClick={() => handleOpenUpload(m, sub)}
+                        >
+                          <Upload size={14} /> {isCorrectionRequired ? `Resubmit (Version ${(sub?.currentVersion || 1) + 1})` : 'Upload Deliverables'}
+                        </button>
+                      )}
 
-                  {sub?.versions?.length > 0 && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        setSelectedSubmission(sub);
-                        setIsHistoryModalOpen(true);
-                      }}
-                    >
-                      <History size={14} /> Versions ({sub.versions.length})
-                    </button>
+                      {sub?.versions?.length > 0 && (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setSelectedSubmission(sub);
+                            setIsHistoryModalOpen(true);
+                          }}
+                        >
+                          <History size={14} /> Versions ({sub.versions.length})
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

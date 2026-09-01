@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { DataTable } from '../../components/DataTable';
 import { Modal } from '../../components/Modal';
 import { StatusBadge } from '../../components/StatusBadge';
-import { UserPlus, KeyRound, Shield, CheckCircle, XCircle, GraduationCap, UserCheck, Briefcase } from 'lucide-react';
+import { UserPlus, KeyRound, Shield, CheckCircle, XCircle, GraduationCap, UserCheck, Briefcase, Trash2 } from 'lucide-react';
 
 export const UserManagementPage = () => {
   const { selectedYearId } = useAuth();
@@ -118,6 +118,19 @@ export const UserManagementPage = () => {
     }
   };
 
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`Are you sure you want to permanently delete account "${user.fullName}" (@${user.username})? This will remove their assignments.`)) {
+      return;
+    }
+    try {
+      await api.head.deleteUser(user.id);
+      setMessage(`User account ${user.username} deleted successfully.`);
+      loadUsers();
+    } catch (err) {
+      alert(err.message || 'Failed to delete user account.');
+    }
+  };
+
   const columns = [
     {
       header: 'User / Full Name',
@@ -214,6 +227,14 @@ export const UserManagementPage = () => {
                 }}
               >
                 <KeyRound size={14} /> Reset
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#ef4444' }}
+                title="Delete Account"
+                onClick={() => handleDeleteUser(u)}
+              >
+                <Trash2 size={14} /> Delete
               </button>
             </>
           )}
@@ -367,11 +388,11 @@ export const UserManagementPage = () => {
 
           {/* Conditional Fields based on Role */}
           {formData.role === 'ROLE_GUIDE' && (
-            <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
                 Guide Academic Details
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Designation</label>
                   <input
@@ -394,7 +415,7 @@ export const UserManagementPage = () => {
                   />
                 </div>
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ marginTop: '0.75rem' }}>
                 <label className="form-label">Specialization / Domain</label>
                 <input
                   type="text"
@@ -408,11 +429,11 @@ export const UserManagementPage = () => {
           )}
 
           {formData.role === 'ROLE_STUDENT' && (
-            <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
                 Student Academic Details
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Roll Number *</label>
                   <input

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { DataTable } from '../../components/DataTable';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal';
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 
 export const GuideSubmissionsPage = () => {
+  const [submissionTab, setSubmissionTab] = useState('MY_GROUPS'); // 'MY_GROUPS' or 'ALL_DEPT'
   const [submissions, setSubmissions] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +32,11 @@ export const GuideSubmissionsPage = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const loadData = async () => {
+  const loadData = async (tab = submissionTab) => {
     setLoading(true);
     try {
       const [subsData, tmplsData] = await Promise.all([
-        api.guide.getSubmissions(),
+        tab === 'ALL_DEPT' ? api.guide.getAllDepartmentSubmissions() : api.guide.getSubmissions(),
         api.common.getFeedbackTemplates(),
       ]);
       setSubmissions(subsData);
@@ -47,8 +49,13 @@ export const GuideSubmissionsPage = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData(submissionTab);
+  }, [submissionTab]);
+
+  const handleTabSwitch = (tab) => {
+    setSubmissionTab(tab);
+    loadData(tab);
+  };
 
   const handleOpenReview = (submission) => {
     if (!submission.versions || submission.versions.length === 0) {
@@ -107,7 +114,7 @@ export const GuideSubmissionsPage = () => {
           <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
             {s.groupNumber}: {s.milestoneTitle}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{s.projectTitle}</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.projectTitle}</div>
         </div>
       ),
     },
@@ -126,10 +133,10 @@ export const GuideSubmissionsPage = () => {
       header: 'Latest Document',
       render: (s) => {
         const latest = s.versions?.[0];
-        if (!latest) return <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No file</span>;
+        if (!latest) return <span style={{ color: 'var(--text-subtle)', fontSize: '0.75rem' }}>No file</span>;
 
         if (latest.submissionMode === 'OFFLINE') {
-          return <span style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: 600 }}>Physical Hardcopy</span>;
+          return <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 600 }}>Physical Hardcopy</span>;
         }
 
         return (
@@ -173,23 +180,43 @@ export const GuideSubmissionsPage = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Submissions & Document Reviews</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
             Review student project reports, evaluate versions, request corrections, and approve stages.
           </p>
         </div>
+
+        {/* Tab Switcher */}
+        <div style={{ display: 'flex', backgroundColor: 'var(--bg-subtle)', padding: '4px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+          <button
+            type="button"
+            className={`btn btn-sm ${submissionTab === 'MY_GROUPS' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ border: 'none', borderRadius: '6px' }}
+            onClick={() => handleTabSwitch('MY_GROUPS')}
+          >
+            My Assigned Groups
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${submissionTab === 'ALL_DEPT' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ border: 'none', borderRadius: '6px' }}
+            onClick={() => handleTabSwitch('ALL_DEPT')}
+          >
+            All Department Submissions
+          </button>
+        </div>
       </div>
 
       {message && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
           {message}
         </div>
       )}
 
       {error && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+        <div style={{ padding: '0.75rem 1rem', backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
           {error}
         </div>
       )}
@@ -199,6 +226,11 @@ export const GuideSubmissionsPage = () => {
           columns={columns}
           data={submissions}
           searchPlaceholder="Search submissions by group, milestone..."
+          emptyMessage={
+            submissionTab === 'MY_GROUPS'
+              ? 'No submissions found for your assigned groups. Switch to "All Department Submissions" or assign student groups in Project Head portal.'
+              : 'No project submissions uploaded across the department yet.'
+          }
         />
       </div>
 
@@ -380,7 +412,7 @@ export const GuidePresentationsPage = () => {
       header: 'Schedule & Venue',
       render: (p) => (
         <div style={{ fontSize: '0.8125rem' }}>
-          <div>{new Date(p.scheduledDate).toLocaleDateString()} {p.startTime ? `at ${p.startTime}` : ''}</div>
+          <div>{formatDate(p.scheduledDate)} {p.startTime ? `at ${p.startTime}` : ''}</div>
           <div style={{ color: '#94a3b8' }}>{p.venue || 'Seminar Hall'}</div>
         </div>
       ),

@@ -1,4 +1,5 @@
 {
-  "summary": "Create vercel.json rewrite rule for React Router SPA",
-  "updatedAt": "2026-08-25T20:12:47.749699500Z"
+  "summary": "Create vercel.json for React SPA routing rewrites on Vercel",
+  "updatedAt": "2026-09-01T10:21:43.715792Z",
+  "userFacing": true
 }

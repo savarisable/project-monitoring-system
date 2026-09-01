@@ -131,7 +131,7 @@ export const GuideDashboard = () => {
                   key={p.id}
                   style={{
                     padding: '0.875rem',
-                    backgroundColor: '#fafbfc',
+                    backgroundColor: 'var(--bg-subtle)',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-color)',
                   }}

@@ -37,6 +37,10 @@ public class GuideService {
     private final NotificationService notificationService;
     private final ProjectLifecycleService projectLifecycleService;
     private final ProjectHeadService projectHeadService;
+    private final ProjectDiaryEntryRepository projectDiaryEntryRepository;
+    private final DiaryAttendanceRepository diaryAttendanceRepository;
+    private final StudentRepository studentRepository;
+    private final StudentWorkLogRepository studentWorkLogRepository;
 
     public GuideService(GuideRepository guideRepository,
                         GuideAllocationRepository guideAllocationRepository,
@@ -55,7 +59,11 @@ public class GuideService {
                         AuditLogService auditLogService,
                         NotificationService notificationService,
                         ProjectLifecycleService projectLifecycleService,
-                        ProjectHeadService projectHeadService) {
+                        ProjectHeadService projectHeadService,
+                        ProjectDiaryEntryRepository projectDiaryEntryRepository,
+                        DiaryAttendanceRepository diaryAttendanceRepository,
+                        StudentRepository studentRepository,
+                        StudentWorkLogRepository studentWorkLogRepository) {
         this.guideRepository = guideRepository;
         this.guideAllocationRepository = guideAllocationRepository;
         this.projectRepository = projectRepository;
@@ -74,6 +82,10 @@ public class GuideService {
         this.notificationService = notificationService;
         this.projectLifecycleService = projectLifecycleService;
         this.projectHeadService = projectHeadService;
+        this.projectDiaryEntryRepository = projectDiaryEntryRepository;
+        this.diaryAttendanceRepository = diaryAttendanceRepository;
+        this.studentRepository = studentRepository;
+        this.studentWorkLogRepository = studentWorkLogRepository;
     }
 
     // =========================================================================
@@ -559,6 +571,191 @@ public class GuideService {
         dto.setGuideResponse(request.getGuideResponse());
         dto.setCreatedAt(request.getCreatedAt());
         dto.setRespondedAt(request.getRespondedAt());
+        return dto;
+    }
+
+    // =========================================================================
+    // 7. ALL SUBMISSIONS (CROSS-DEPARTMENT VIEW)
+    // =========================================================================
+    @Transactional(readOnly = true)
+    public List<SubmissionDto> getAllDepartmentSubmissions() {
+        return submissionRepository.findAll().stream()
+                .map(this::mapSubmissionToDto)
+                .collect(Collectors.toList());
+    }
+
+    // =========================================================================
+    // 8. PROJECT DIARY & ATTENDANCE LOGGING
+    // =========================================================================
+    @Transactional
+    public ProjectDiaryDto createDiaryEntry(DiaryEntryRequest request, Long userId, String username) {
+        Guide guide = getGuideByUserId(userId);
+        ProjectGroup group = projectGroupRepository.findById(request.getGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project group not found"));
+
+        Project project = null;
+        if (request.getProjectId() != null) {
+            project = projectRepository.findById(request.getProjectId()).orElse(null);
+        } else {
+            project = projectRepository.findByGroupId(group.getId()).orElse(null);
+        }
+
+        ProjectDiaryEntry diaryEntry = new ProjectDiaryEntry(
+                group,
+                project,
+                guide,
+                request.getMeetingDate(),
+                request.getMeetingTime(),
+                request.getVenue(),
+                request.getDiscussionPoints(),
+                request.getGuidanceGiven(),
+                request.getTargetForNextMeeting()
+        );
+        diaryEntry = projectDiaryEntryRepository.save(diaryEntry);
+
+        if (request.getAttendances() != null) {
+            List<DiaryAttendance> attendanceList = new ArrayList<>();
+            for (DiaryEntryRequest.StudentAttendanceItem item : request.getAttendances()) {
+                Student student = studentRepository.findById(item.getStudentId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Student not found with ID: " + item.getStudentId()));
+                DiaryAttendance attendance = new DiaryAttendance(
+                        diaryEntry,
+                        student,
+                        item.isPresent(),
+                        item.getWorkSummary(),
+                        item.getRemarks()
+                );
+                attendanceList.add(diaryAttendanceRepository.save(attendance));
+            }
+            diaryEntry.setAttendances(attendanceList);
+        }
+
+        auditLogService.log(userId, username, "ROLE_GUIDE",
+                "CREATE_DIARY_ENTRY", "PROJECT_DIARY", diaryEntry.getId(),
+                "Logged Project Diary entry with attendance for " + group.getGroupNumber() + " on " + request.getMeetingDate());
+
+        return mapDiaryToDto(diaryEntry);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectDiaryDto> getDiaryEntriesForGroup(Long groupId) {
+        return projectDiaryEntryRepository.findByGroupIdOrderByMeetingDateDesc(groupId).stream()
+                .map(this::mapDiaryToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectDiaryDto> getMyGuideDiaryEntries(Long userId) {
+        Guide guide = getGuideByUserId(userId);
+        return projectDiaryEntryRepository.findByGuideIdOrderByMeetingDateDesc(guide.getId()).stream()
+                .map(this::mapDiaryToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteDiaryEntry(Long diaryId, Long userId, String username) {
+        Guide guide = getGuideByUserId(userId);
+        ProjectDiaryEntry entry = projectDiaryEntryRepository.findById(diaryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Diary entry not found"));
+
+        if (!entry.getGuide().getId().equals(guide.getId())) {
+            throw new UnauthorizedException("You can only delete your own diary entries.");
+        }
+
+        projectDiaryEntryRepository.delete(entry);
+        auditLogService.log(userId, username, "ROLE_GUIDE",
+                "DELETE_DIARY_ENTRY", "PROJECT_DIARY", diaryId,
+                "Deleted project diary entry ID: " + diaryId);
+    }
+
+    public ProjectDiaryDto mapDiaryToDto(ProjectDiaryEntry entry) {
+        ProjectDiaryDto dto = new ProjectDiaryDto();
+        dto.setId(entry.getId());
+        dto.setGroupId(entry.getGroup().getId());
+        dto.setGroupNumber(entry.getGroup().getGroupNumber());
+        if (entry.getProject() != null) {
+            dto.setProjectId(entry.getProject().getId());
+            dto.setProjectTitle(entry.getProject().getTitle());
+        }
+        dto.setGuideId(entry.getGuide().getId());
+        dto.setGuideName(entry.getGuide().getUser().getFullName());
+        dto.setMeetingDate(entry.getMeetingDate());
+        dto.setMeetingTime(entry.getMeetingTime());
+        dto.setVenue(entry.getVenue());
+        dto.setDiscussionPoints(entry.getDiscussionPoints());
+        dto.setGuidanceGiven(entry.getGuidanceGiven());
+        dto.setTargetForNextMeeting(entry.getTargetForNextMeeting());
+        dto.setCreatedAt(entry.getCreatedAt());
+
+        if (entry.getAttendances() != null) {
+            dto.setAttendances(entry.getAttendances().stream().map(a -> new DiaryAttendanceDto(
+                    a.getId(),
+                    a.getStudent().getId(),
+                    a.getStudent().getUser().getFullName(),
+                    a.getStudent().getRollNumber(),
+                    a.isPresent(),
+                    a.getWorkSummary(),
+                    a.getRemarks()
+            )).collect(Collectors.toList()));
+        }
+        return dto;
+    }
+
+    // =========================================================================
+    // 9. STUDENT INDIVIDUAL WORK LOGS (GUIDE REVIEW & VERIFICATION)
+    // =========================================================================
+    @Transactional(readOnly = true)
+    public List<StudentWorkLogDto> getGroupStudentWorkLogs(Long groupId, Long userId) {
+        Guide guide = getGuideByUserId(userId);
+        validateGuideAccessToGroup(guide.getId(), groupId);
+
+        return studentWorkLogRepository.findByGroupIdOrderByLogDateDesc(groupId).stream()
+                .map(this::mapWorkLogToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public StudentWorkLogDto verifyStudentWorkLog(Long logId, Long userId, String guideRemark) {
+        Guide guide = getGuideByUserId(userId);
+        StudentWorkLog log = studentWorkLogRepository.findById(logId)
+                .orElseThrow(() -> new ResourceNotFoundException("Work log not found"));
+
+        validateGuideAccessToGroup(guide.getId(), log.getGroup().getId());
+
+        log.setVerifiedByGuide(true);
+        log.setGuideRemark(guideRemark);
+        log.setUpdatedAt(LocalDateTime.now());
+        studentWorkLogRepository.save(log);
+
+        auditLogService.log(userId, guide.getUser().getUsername(), "ROLE_GUIDE",
+                "VERIFY_WORK_LOG", "STUDENT_WORK_LOG", logId,
+                "Verified student work log for " + log.getStudent().getUser().getFullName());
+
+        return mapWorkLogToDto(log);
+    }
+
+    public StudentWorkLogDto mapWorkLogToDto(StudentWorkLog log) {
+        StudentWorkLogDto dto = new StudentWorkLogDto();
+        dto.setId(log.getId());
+        dto.setStudentId(log.getStudent().getId());
+        dto.setStudentName(log.getStudent().getUser().getFullName());
+        dto.setRollNumber(log.getStudent().getRollNumber());
+        dto.setGroupId(log.getGroup().getId());
+        dto.setGroupNumber(log.getGroup().getGroupNumber());
+        if (log.getProject() != null) {
+            dto.setProjectId(log.getProject().getId());
+            dto.setProjectTitle(log.getProject().getTitle());
+        }
+        dto.setLogDate(log.getLogDate());
+        dto.setModuleName(log.getModuleName());
+        dto.setTasksAccomplished(log.getTasksAccomplished());
+        dto.setHoursSpent(log.getHoursSpent());
+        dto.setChallengesFaced(log.getChallengesFaced());
+        dto.setNextPlans(log.getNextPlans());
+        dto.setVerifiedByGuide(log.isVerifiedByGuide());
+        dto.setGuideRemark(log.getGuideRemark());
+        dto.setCreatedAt(log.getCreatedAt());
+        dto.setUpdatedAt(log.getUpdatedAt());
         return dto;
     }
 }

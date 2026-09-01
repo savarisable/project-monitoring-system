@@ -229,6 +229,100 @@ public class ProjectHeadService {
                 "Manually reset password for user '" + user.getUsername() + "'");
     }
 
+    @Transactional
+    public void deleteUser(Long targetUserId, Long currentUserId, String currentUsername) {
+        if (targetUserId.equals(currentUserId)) {
+            throw new BadRequestException("You cannot delete your own Project Head account.");
+        }
+
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if ("ROLE_STUDENT".equals(user.getRole().getName().name())) {
+            studentRepository.findByUserId(targetUserId).ifPresent(student -> {
+                groupMemberRepository.findByStudentId(student.getId()).ifPresent(groupMemberRepository::delete);
+                studentRepository.delete(student);
+            });
+        } else if ("ROLE_GUIDE".equals(user.getRole().getName().name())) {
+            guideRepository.findByUserId(targetUserId).ifPresent(guide -> {
+                guideAllocationRepository.findByGuideIdAndActiveTrue(guide.getId()).forEach(ga -> {
+                    ga.setActive(false);
+                    guideAllocationRepository.save(ga);
+                });
+                guideRepository.delete(guide);
+            });
+        }
+
+        userRepository.delete(user);
+
+        auditLogService.log(currentUserId, currentUsername, "ROLE_PROJECT_HEAD",
+                "DELETE_USER", "USER", targetUserId,
+                "Deleted user account: " + user.getUsername() + " (" + user.getFullName() + ")");
+    }
+
+    @Transactional
+    public void removeStudentFromGroup(Long studentId, Long currentUserId, String currentUsername) {
+        GroupMember member = groupMemberRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student is not assigned to any group."));
+
+        String studentName = member.getStudent().getUser().getFullName();
+        String groupNum = member.getGroup().getGroupNumber();
+        groupMemberRepository.delete(member);
+
+        auditLogService.log(currentUserId, currentUsername, "ROLE_PROJECT_HEAD",
+                "REMOVE_GROUP_MEMBER", "PROJECT_GROUP", member.getGroup().getId(),
+                "Removed student '" + studentName + "' from group " + groupNum);
+    }
+
+    @Transactional
+    public void addStudentToGroup(Long groupId, Long studentId, boolean isLeader, Long currentUserId, String currentUsername) {
+        ProjectGroup group = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+
+        if (groupMemberRepository.findByStudentId(studentId).isPresent()) {
+            throw new BadRequestException("Student is already assigned to a group. Please remove them from their existing group first.");
+        }
+
+        GroupMember member = new GroupMember(group, student, isLeader);
+        groupMemberRepository.save(member);
+
+        auditLogService.log(currentUserId, currentUsername, "ROLE_PROJECT_HEAD",
+                "ADD_GROUP_MEMBER", "PROJECT_GROUP", group.getId(),
+                "Added student '" + student.getUser().getFullName() + "' to group " + group.getGroupNumber());
+    }
+
+    @Transactional
+    public void deleteGroup(Long groupId, Long currentUserId, String currentUsername) {
+        ProjectGroup group = projectGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+
+        String groupNumber = group.getGroupNumber();
+
+        // 1. Delete group members
+        groupMemberRepository.findByGroupId(groupId).forEach(groupMemberRepository::delete);
+
+        // 2. Delete guide allocations
+        guideAllocationRepository.findAllByGroupId(groupId).forEach(guideAllocationRepository::delete);
+
+        // 3. Delete projects & milestones if any
+        projectRepository.findByGroupId(groupId).ifPresent(project -> {
+            submissionRepository.findByProjectId(project.getId()).forEach(submissionRepository::delete);
+            presentationRepository.findByProjectIdOrderByPresentationNumberAsc(project.getId()).forEach(presentationRepository::delete);
+            projectMilestoneRepository.findByProjectIdOrderByMilestone_MilestoneOrderAsc(project.getId()).forEach(projectMilestoneRepository::delete);
+            projectRepository.delete(project);
+        });
+
+        // 4. Delete group
+        projectGroupRepository.delete(group);
+
+        auditLogService.log(currentUserId, currentUsername, "ROLE_PROJECT_HEAD",
+                "DELETE_GROUP", "PROJECT_GROUP", groupId,
+                "Deleted project group '" + groupNumber + "' and associated records.");
+    }
+
     // =========================================================================
     // 3. GUIDES & STUDENTS MANAGEMENT
     // =========================================================================

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { DataTable } from '../../components/DataTable';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal';
@@ -12,6 +13,9 @@ import {
   CheckCircle,
   HelpCircle,
   MessageSquare,
+  CheckSquare,
+  Square,
+  Users,
 } from 'lucide-react';
 
 export const GuideMeetingsPage = () => {
@@ -22,9 +26,11 @@ export const GuideMeetingsPage = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  // Selected Group IDs (Checkboxes)
+  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+
   // Form State
   const [formData, setFormData] = useState({
-    groupId: '',
     title: '',
     meetingDate: new Date().toISOString().split('T')[0],
     meetingTime: '11:00 AM',
@@ -52,23 +58,53 @@ export const GuideMeetingsPage = () => {
     loadData();
   }, []);
 
+  const handleOpenModal = () => {
+    setSelectedGroupIds(groups.map((g) => g.id)); // Default select all
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const handleToggleGroup = (groupId) => {
+    if (selectedGroupIds.includes(groupId)) {
+      setSelectedGroupIds(selectedGroupIds.filter((id) => id !== groupId));
+    } else {
+      setSelectedGroupIds([...selectedGroupIds, groupId]);
+    }
+  };
+
+  const handleToggleAllGroups = () => {
+    if (selectedGroupIds.length === groups.length) {
+      setSelectedGroupIds([]);
+    } else {
+      setSelectedGroupIds(groups.map((g) => g.id));
+    }
+  };
+
   const handleCreateMeeting = async (e) => {
     e.preventDefault();
-    if (!formData.groupId || !formData.title.trim()) {
-      setError('Please select a group and enter meeting title.');
+    if (selectedGroupIds.length === 0) {
+      setError('Please check at least one target group.');
+      return;
+    }
+    if (!formData.title.trim()) {
+      setError('Please enter meeting title.');
       return;
     }
 
     try {
-      await api.guide.createMeeting({
-        ...formData,
-        groupId: Number(formData.groupId),
-      });
+      // Schedule for all selected groups
+      await Promise.all(
+        selectedGroupIds.map((groupId) =>
+          api.guide.createMeeting({
+            ...formData,
+            groupId: Number(groupId),
+          })
+        )
+      );
 
       setIsModalOpen(false);
-      setMessage('Project meeting scheduled and student team notified.');
+      setMessage(`Project meeting scheduled for ${selectedGroupIds.length} group(s) and student teams notified.`);
       setFormData({
-        groupId: '',
         title: '',
         meetingDate: new Date().toISOString().split('T')[0],
         meetingTime: '11:00 AM',
@@ -100,7 +136,7 @@ export const GuideMeetingsPage = () => {
       header: 'Date & Time',
       render: (m) => (
         <span style={{ fontSize: '0.8125rem' }}>
-          {new Date(m.meetingDate).toLocaleDateString()} at {m.meetingTime}
+          {formatDate(m.meetingDate)} at {m.meetingTime}
         </span>
       ),
     },
@@ -124,7 +160,7 @@ export const GuideMeetingsPage = () => {
             Schedule advisory sessions, architecture reviews, and lab meetings with your assigned batches.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={handleOpenModal}>
           <Plus size={18} /> Schedule Meeting
         </button>
       </div>
@@ -147,8 +183,8 @@ export const GuideMeetingsPage = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Schedule Meeting with Student Group"
-        maxWidth="550px"
+        title="Schedule Meeting with Student Group(s)"
+        maxWidth="580px"
       >
         <form onSubmit={handleCreateMeeting}>
           {error && (
@@ -157,21 +193,72 @@ export const GuideMeetingsPage = () => {
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Select Group *</label>
-            <select
-              className="form-control"
-              value={formData.groupId}
-              onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-              required
+          {/* Group Multi-Select Checkboxes */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>
+                Target Group(s) * ({selectedGroupIds.length} Selected)
+              </label>
+              <button
+                type="button"
+                onClick={handleToggleAllGroups}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
+              >
+                {selectedGroupIds.length === groups.length ? 'Deselect All' : 'Select All Groups'}
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.45rem',
+                maxHeight: '190px',
+                overflowY: 'auto',
+                padding: '0.75rem',
+                backgroundColor: 'var(--bg-subtle)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+              }}
             >
-              <option value="">-- Choose Assigned Group --</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.groupNumber} ({g.project ? g.project.title : 'No project'})
-                </option>
-              ))}
-            </select>
+              {groups.map((g) => {
+                const isChecked = selectedGroupIds.includes(g.id);
+                return (
+                  <label
+                    key={g.id}
+                    onClick={() => handleToggleGroup(g.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isChecked ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                      border: '1px solid',
+                      borderColor: isChecked ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {}} // handled by label onClick
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <div style={{ flex: 1, lineHeight: 1.25 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                        {g.groupNumber}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {g.project ? g.project.title : 'Project Registered'}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div className="form-group">
@@ -238,7 +325,7 @@ export const GuideMeetingsPage = () => {
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              Schedule & Notify Team
+              Schedule & Notify Team(s)
             </button>
           </div>
         </form>
@@ -253,11 +340,13 @@ export const GuideNoticesPage = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  // Selected Group IDs (Checkboxes)
+  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: 'HIGH',
-    targetGroupId: '',
     fromDate: new Date().toISOString().split('T')[0],
     toDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   });
@@ -274,26 +363,56 @@ export const GuideNoticesPage = () => {
     loadGroups();
   }, []);
 
+  const handleOpenModal = () => {
+    setSelectedGroupIds(groups.map((g) => g.id)); // Default select all
+    setError('');
+    setIsModalOpen(true);
+  };
+
+  const handleToggleGroup = (groupId) => {
+    if (selectedGroupIds.includes(groupId)) {
+      setSelectedGroupIds(selectedGroupIds.filter((id) => id !== groupId));
+    } else {
+      setSelectedGroupIds([...selectedGroupIds, groupId]);
+    }
+  };
+
+  const handleToggleAllGroups = () => {
+    if (selectedGroupIds.length === groups.length) {
+      setSelectedGroupIds([]);
+    } else {
+      setSelectedGroupIds(groups.map((g) => g.id));
+    }
+  };
+
   const handleCreateNotice = async (e) => {
     e.preventDefault();
+    if (selectedGroupIds.length === 0) {
+      setError('Please check at least one target group.');
+      return;
+    }
     if (!formData.title.trim() || !formData.description.trim()) {
       setError('Title and description are required.');
       return;
     }
 
     try {
-      await api.guide.createNotice({
-        ...formData,
-        targetGroupId: formData.targetGroupId ? Number(formData.targetGroupId) : null,
-      });
+      // Broadcast notice to all selected groups
+      await Promise.all(
+        selectedGroupIds.map((groupId) =>
+          api.guide.createNotice({
+            ...formData,
+            targetGroupId: Number(groupId),
+          })
+        )
+      );
 
       setIsModalOpen(false);
-      setMessage('Notice published and sent to group students.');
+      setMessage(`Notice published and sent to ${selectedGroupIds.length} group(s).`);
       setFormData({
         title: '',
         description: '',
         priority: 'HIGH',
-        targetGroupId: '',
         fromDate: new Date().toISOString().split('T')[0],
         toDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       });
@@ -311,7 +430,7 @@ export const GuideNoticesPage = () => {
             Publish announcements and guidance circulars directly to your supervised project groups.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={handleOpenModal}>
           <Plus size={18} /> Publish Notice
         </button>
       </div>
@@ -324,7 +443,7 @@ export const GuideNoticesPage = () => {
 
       <div className="card">
         <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-          Use the <strong>Publish Notice</strong> button to broadcast instructions to your assigned groups. Notices are immediately sent as in-app notifications to all students in the selected group.
+          Use the <strong>Publish Notice</strong> button to broadcast instructions to your assigned groups. Notices are immediately sent as in-app notifications to all students in the selected group(s).
         </p>
       </div>
 
@@ -332,8 +451,8 @@ export const GuideNoticesPage = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Publish Notice to Assigned Group"
-        maxWidth="550px"
+        title="Publish Notice to Assigned Group(s)"
+        maxWidth="580px"
       >
         <form onSubmit={handleCreateNotice}>
           {error && (
@@ -342,21 +461,72 @@ export const GuideNoticesPage = () => {
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Target Group *</label>
-            <select
-              className="form-control"
-              value={formData.targetGroupId}
-              onChange={(e) => setFormData({ ...formData, targetGroupId: e.target.value })}
-              required
+          {/* Group Multi-Select Checkboxes */}
+          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>
+                Target Group(s) * ({selectedGroupIds.length} Selected)
+              </label>
+              <button
+                type="button"
+                onClick={handleToggleAllGroups}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
+              >
+                {selectedGroupIds.length === groups.length ? 'Deselect All' : 'Select All Groups'}
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.45rem',
+                maxHeight: '190px',
+                overflowY: 'auto',
+                padding: '0.75rem',
+                backgroundColor: 'var(--bg-subtle)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+              }}
             >
-              <option value="">-- Choose Assigned Group --</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.groupNumber} ({g.project ? g.project.title : 'No project'})
-                </option>
-              ))}
-            </select>
+              {groups.map((g) => {
+                const isChecked = selectedGroupIds.includes(g.id);
+                return (
+                  <label
+                    key={g.id}
+                    onClick={() => handleToggleGroup(g.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isChecked ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                      border: '1px solid',
+                      borderColor: isChecked ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {}} // handled by label onClick
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <div style={{ flex: 1, lineHeight: 1.25 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                        {g.groupNumber}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        {g.project ? g.project.title : 'Project Registered'}
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div className="form-group">
@@ -388,7 +558,7 @@ export const GuideNoticesPage = () => {
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              Publish & Broadcast
+              Publish & Broadcast to Group(s)
             </button>
           </div>
         </form>

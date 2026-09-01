@@ -116,4 +116,54 @@ public class GuideController {
         guideService.respondToStudentRequest(id, responseDto, userPrincipal.getId(), userPrincipal.getUsername());
         return ResponseEntity.ok(ApiResponse.success("Response sent to students"));
     }
+
+    // All Submissions (Department-wide view)
+    @GetMapping("/all-submissions")
+    public ResponseEntity<ApiResponse<List<SubmissionDto>>> getAllDepartmentSubmissions() {
+        List<SubmissionDto> submissions = guideService.getAllDepartmentSubmissions();
+        return ResponseEntity.ok(ApiResponse.success("All department submissions retrieved", submissions));
+    }
+
+    // Project Diary & Attendance Logging
+    @GetMapping("/diary")
+    public ResponseEntity<ApiResponse<List<ProjectDiaryDto>>> getDiaryEntries(@RequestParam(required = false) Long groupId,
+                                                                             @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        List<ProjectDiaryDto> list = (groupId != null)
+                ? guideService.getDiaryEntriesForGroup(groupId)
+                : guideService.getMyGuideDiaryEntries(userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.success("Project diary entries retrieved", list));
+    }
+
+    @PostMapping("/diary")
+    public ResponseEntity<ApiResponse<ProjectDiaryDto>> createDiaryEntry(@AuthenticationPrincipal UserPrincipal userPrincipal,
+                                                                         @Valid @RequestBody DiaryEntryRequest request) {
+        ProjectDiaryDto dto = guideService.createDiaryEntry(request, userPrincipal.getId(), userPrincipal.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Project diary entry and attendance recorded successfully", dto));
+    }
+
+    @DeleteMapping("/diary/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteDiaryEntry(@PathVariable Long id,
+                                                             @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        guideService.deleteDiaryEntry(id, userPrincipal.getId(), userPrincipal.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Project diary entry deleted successfully"));
+    }
+
+    // Student Work Logs (Review & Verification)
+    @GetMapping("/groups/{groupId}/student-work-logs")
+    public ResponseEntity<ApiResponse<List<StudentWorkLogDto>>> getGroupStudentWorkLogs(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        List<StudentWorkLogDto> logs = guideService.getGroupStudentWorkLogs(groupId, userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.success("Student work logs retrieved", logs));
+    }
+
+    @PostMapping("/student-work-logs/{logId}/verify")
+    public ResponseEntity<ApiResponse<StudentWorkLogDto>> verifyStudentWorkLog(
+            @PathVariable Long logId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        String remark = body != null ? body.get("guideRemark") : null;
+        StudentWorkLogDto updated = guideService.verifyStudentWorkLog(logId, userPrincipal.getId(), remark);
+        return ResponseEntity.ok(ApiResponse.success("Student work log verified successfully", updated));
+    }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useAuth } from '../../context/AuthContext';
 import { DataTable } from '../../components/DataTable';
 import { Modal } from '../../components/Modal';
@@ -121,7 +122,7 @@ export const NoticesPage = () => {
       header: 'Active Window',
       render: (n) => (
         <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-          {n.fromDate ? new Date(n.fromDate).toLocaleDateString() : '-'} - {n.toDate ? new Date(n.toDate).toLocaleDateString() : '-'}
+          {formatDate(n.fromDate)} - {formatDate(n.toDate)}
         </span>
       ),
     },
@@ -452,7 +453,7 @@ export const ReportsPage = () => {
                     <td><strong>{m.groupNumber}</strong></td>
                     <td style={{ fontWeight: 600 }}>{m.projectTitle}</td>
                     <td>Stage {m.presentationNumber}: {m.presentationTitle}</td>
-                    <td>{new Date(m.scheduledDate).toLocaleDateString()}</td>
+                    <td>{formatDate(m.scheduledDate)}</td>
                     <td>{m.guideName}</td>
                     <td style={{ fontWeight: 700, color: m.marksObtained != null ? 'var(--primary-700)' : '#94a3b8' }}>
                       {m.marksObtained != null ? m.marksObtained : 'Not Evaluated'}
@@ -493,7 +494,7 @@ export const AuditLogsPage = () => {
     {
       header: 'Timestamp',
       accessor: 'createdAt',
-      render: (l) => <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>{new Date(l.createdAt).toLocaleString()}</span>,
+      render: (l) => <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>{formatDateTime(l.createdAt)}</span>,
     },
     {
       header: 'User / Role',

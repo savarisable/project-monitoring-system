@@ -37,6 +37,8 @@ public class StudentService {
     private final ProjectLifecycleService projectLifecycleService;
     private final ProjectHeadService projectHeadService;
     private final GuideService guideService;
+    private final ProjectDiaryEntryRepository projectDiaryEntryRepository;
+    private final StudentWorkLogRepository studentWorkLogRepository;
 
     public StudentService(StudentRepository studentRepository,
                           GroupMemberRepository groupMemberRepository,
@@ -53,7 +55,9 @@ public class StudentService {
                           NotificationService notificationService,
                           ProjectLifecycleService projectLifecycleService,
                           ProjectHeadService projectHeadService,
-                          GuideService guideService) {
+                          GuideService guideService,
+                          ProjectDiaryEntryRepository projectDiaryEntryRepository,
+                          StudentWorkLogRepository studentWorkLogRepository) {
         this.studentRepository = studentRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.projectRepository = projectRepository;
@@ -70,6 +74,8 @@ public class StudentService {
         this.projectLifecycleService = projectLifecycleService;
         this.projectHeadService = projectHeadService;
         this.guideService = guideService;
+        this.projectDiaryEntryRepository = projectDiaryEntryRepository;
+        this.studentWorkLogRepository = studentWorkLogRepository;
     }
 
     // =========================================================================
@@ -162,7 +168,13 @@ public class StudentService {
         }
 
         Submission submission = submissionRepository.findByProjectMilestoneId(pm.getId())
-                .orElseGet(() -> new Submission(pm, pm.getProject(), member.getGroup(), pm.getMilestone().getTitle().toUpperCase().replaceAll(" ", "_")));
+                .orElseGet(() -> {
+                    Submission newSub = new Submission(pm, pm.getProject(), member.getGroup(), pm.getMilestone().getTitle().toUpperCase().replaceAll(" ", "_"));
+                    return submissionRepository.save(newSub);
+                });
+        if (submission.getId() == null) {
+            submission = submissionRepository.save(submission);
+        }
 
         boolean isResubmission = submission.getStatus() == SubmissionStatus.CORRECTION_REQUIRED || !submission.getVersions().isEmpty();
         int versionNumber = submission.getVersions().isEmpty() ? 1 : submission.getVersions().get(0).getVersionNumber() + 1;
@@ -285,6 +297,100 @@ public class StudentService {
         return studentRequestRepository.findByStudent_UserIdOrderByCreatedAtDesc(userId).stream()
                 .map(guideService::mapStudentRequestToDto)
                 .collect(Collectors.toList());
+    }
+
+    // =========================================================================
+    // 5. PROJECT DIARY & STUDENT WORK LOGS
+    // =========================================================================
+    @Transactional(readOnly = true)
+    public List<ProjectDiaryDto> getMyProjectDiary(Long userId) {
+        Student student = getStudentByUserId(userId);
+        GroupMember member = groupMemberRepository.findByStudentId(student.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("You are not assigned to any group."));
+
+        return projectDiaryEntryRepository.findByGroupIdOrderByMeetingDateDesc(member.getGroup().getId()).stream()
+                .map(guideService::mapDiaryToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public StudentWorkLogDto createStudentWorkLog(Long userId, com.academic.projectmonitoring.dto.request.StudentWorkLogRequest request) {
+        Student student = getStudentByUserId(userId);
+        GroupMember member = groupMemberRepository.findByStudentId(student.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("You are not assigned to any project group."));
+
+        ProjectGroup group = member.getGroup();
+        Project project = projectRepository.findByGroupId(group.getId()).orElse(null);
+
+        StudentWorkLog log = new StudentWorkLog(
+                student,
+                group,
+                project,
+                request.getLogDate() != null ? request.getLogDate() : LocalDate.now(),
+                request.getModuleName(),
+                request.getTasksAccomplished(),
+                request.getHoursSpent(),
+                request.getChallengesFaced(),
+                request.getNextPlans()
+        );
+
+        studentWorkLogRepository.save(log);
+
+        auditLogService.log(userId, student.getUser().getUsername(), "ROLE_STUDENT",
+                "CREATE_WORK_LOG", "STUDENT_WORK_LOG", log.getId(),
+                "Logged individual project diary entry for module: " + log.getModuleName());
+
+        return mapWorkLogToDto(log);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentWorkLogDto> getMyWorkLogs(Long userId) {
+        Student student = getStudentByUserId(userId);
+        return studentWorkLogRepository.findByStudentIdOrderByLogDateDesc(student.getId()).stream()
+                .map(this::mapWorkLogToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteMyWorkLog(Long userId, Long logId) {
+        Student student = getStudentByUserId(userId);
+        StudentWorkLog log = studentWorkLogRepository.findById(logId)
+                .orElseThrow(() -> new ResourceNotFoundException("Work log not found"));
+
+        if (!log.getStudent().getId().equals(student.getId())) {
+            throw new BadRequestException("You are not authorized to delete this work log.");
+        }
+
+        studentWorkLogRepository.delete(log);
+
+        auditLogService.log(userId, student.getUser().getUsername(), "ROLE_STUDENT",
+                "DELETE_WORK_LOG", "STUDENT_WORK_LOG", logId,
+                "Deleted student work log entry.");
+    }
+
+    public StudentWorkLogDto mapWorkLogToDto(StudentWorkLog log) {
+        StudentWorkLogDto dto = new StudentWorkLogDto();
+        dto.setId(log.getId());
+        dto.setStudentId(log.getStudent().getId());
+        dto.setStudentName(log.getStudent().getUser().getFullName());
+        dto.setRollNumber(log.getStudent().getRollNumber());
+        dto.setGroupId(log.getGroup().getId());
+        dto.setGroupNumber(log.getGroup().getGroupNumber());
+        if (log.getProject() != null) {
+            dto.setProjectId(log.getProject().getId());
+            dto.setProjectTitle(log.getProject().getTitle());
+        }
+        dto.setLogDate(log.getLogDate());
+        dto.setModuleName(log.getModuleName());
+        dto.setTasksAccomplished(log.getTasksAccomplished());
+        dto.setHoursSpent(log.getHoursSpent());
+        dto.setChallengesFaced(log.getChallengesFaced());
+        dto.setNextPlans(log.getNextPlans());
+        dto.setVerifiedByGuide(log.isVerifiedByGuide());
+        dto.setGuideRemark(log.getGuideRemark());
+        dto.setCreatedAt(log.getCreatedAt());
+        dto.setUpdatedAt(log.getUpdatedAt());
+        return dto;
     }
 
     // =========================================================================

@@ -1,4 +1,4 @@
 {
-  "summary": "application.properties configuration for Spring Boot backend with MySQL, JPA, JWT, file uploads, and server settings.",
-  "updatedAt": "2026-08-25T14:39:36.278745Z"
+  "summary": "Configure application.properties to support both persistent local database and MySQL seamlessly",
+  "updatedAt": "2026-08-31T19:03:20.837315400Z"
 }

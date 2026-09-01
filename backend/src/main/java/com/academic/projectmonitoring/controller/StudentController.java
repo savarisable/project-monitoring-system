@@ -98,6 +98,35 @@ public class StudentController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @Valid @RequestBody StudentRequestDto requestDto) {
         StudentRequestResponseDto response = studentService.sendPredefinedQuestion(requestDto, userPrincipal.getId(), userPrincipal.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Inquiry sent to Guide successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Inquiry sent to faculty guide successfully", response));
+    }
+
+    // Project Diary & Personal Work Logs
+    @GetMapping("/diary")
+    public ResponseEntity<ApiResponse<List<ProjectDiaryDto>>> getMyDiary(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        List<ProjectDiaryDto> list = studentService.getMyProjectDiary(userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.success("Project diary entries retrieved", list));
+    }
+
+    @GetMapping("/diary/work-logs")
+    public ResponseEntity<ApiResponse<List<StudentWorkLogDto>>> getMyWorkLogs(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        List<StudentWorkLogDto> logs = studentService.getMyWorkLogs(userPrincipal.getId());
+        return ResponseEntity.ok(ApiResponse.success("Student work logs retrieved", logs));
+    }
+
+    @PostMapping("/diary/work-logs")
+    public ResponseEntity<ApiResponse<StudentWorkLogDto>> createWorkLog(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody com.academic.projectmonitoring.dto.request.StudentWorkLogRequest request) {
+        StudentWorkLogDto log = studentService.createStudentWorkLog(userPrincipal.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Work log entry recorded successfully", log));
+    }
+
+    @DeleteMapping("/diary/work-logs/{logId}")
+    public ResponseEntity<ApiResponse<Void>> deleteWorkLog(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long logId) {
+        studentService.deleteMyWorkLog(userPrincipal.getId(), logId);
+        return ResponseEntity.ok(ApiResponse.success("Work log entry deleted successfully", null));
     }
 }

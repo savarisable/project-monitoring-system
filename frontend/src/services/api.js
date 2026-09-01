@@ -42,11 +42,12 @@ const request = async (endpoint, options = {}) => {
     try {
       data = text ? JSON.parse(text) : {};
     } catch {
-      throw new Error(`Backend server error (${response.status}). Please ensure Spring Boot is running on port 8080.`);
+      throw new Error(`Backend server unreachable (HTTP ${response.status}). Please ensure the Spring Boot backend is running on port 8080.`);
     }
 
     if (!response.ok || !data.success) {
-      throw new Error(data.message || `Request failed with status ${response.status}`);
+      const errorMsg = data.message || data.error || (response.status === 500 ? 'Backend service unavailable or error. Please check that Spring Boot is running on port 8080.' : `Request failed with status ${response.status}`);
+      throw new Error(errorMsg);
     }
 
     return data.data;
@@ -117,6 +118,14 @@ export const api = {
       return request(`/head/reports?${params.toString()}`);
     },
 
+    deleteUser: (id) => request(`/head/users/${id}`, { method: 'DELETE' }),
+    deleteGroup: (id) => request(`/head/groups/${id}`, { method: 'DELETE' }),
+    removeStudentFromGroup: (groupId, studentId) => request(`/head/groups/${groupId}/members/${studentId}`, { method: 'DELETE' }),
+    addStudentToGroup: (groupId, studentId, isLeader) => request(`/head/groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ studentId, isLeader }),
+    }),
+
     getAuditLogs: () => request('/head/audit-logs'),
   },
 
@@ -129,6 +138,7 @@ export const api = {
     getProjectDetails: (id) => request(`/guide/projects/${id}`),
 
     getSubmissions: () => request('/guide/submissions'),
+    getAllDepartmentSubmissions: () => request('/guide/all-submissions'),
     markOffline: (data) => request('/guide/submissions/mark-offline', { method: 'POST', body: JSON.stringify(data) }),
     reviewSubmission: (data) => request('/guide/submissions/review', { method: 'POST', body: JSON.stringify(data) }),
 
@@ -137,6 +147,16 @@ export const api = {
 
     getMeetings: () => request('/guide/meetings'),
     createMeeting: (data) => request('/guide/meetings', { method: 'POST', body: JSON.stringify(data) }),
+
+    getDiary: (groupId) => request(`/guide/diary${groupId ? `?groupId=${groupId}` : ''}`),
+    createDiary: (data) => request('/guide/diary', { method: 'POST', body: JSON.stringify(data) }),
+    deleteDiary: (id) => request(`/guide/diary/${id}`, { method: 'DELETE' }),
+
+    getStudentWorkLogs: (groupId) => request(`/guide/groups/${groupId}/student-work-logs`),
+    verifyStudentWorkLog: (logId, guideRemark) => request(`/guide/student-work-logs/${logId}/verify`, {
+      method: 'POST',
+      body: JSON.stringify({ guideRemark }),
+    }),
 
     createNotice: (data) => request('/guide/notices', { method: 'POST', body: JSON.stringify(data) }),
 
@@ -167,6 +187,11 @@ export const api = {
         body: formData,
       });
     },
+
+    getDiary: () => request('/student/diary'),
+    getWorkLogs: () => request('/student/diary/work-logs'),
+    createWorkLog: (data) => request('/student/diary/work-logs', { method: 'POST', body: JSON.stringify(data) }),
+    deleteWorkLog: (id) => request(`/student/diary/work-logs/${id}`, { method: 'DELETE' }),
 
     getPresentations: () => request('/student/presentations'),
     getMeetings: () => request('/student/meetings'),

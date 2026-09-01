@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { StatCard } from '../../components/StatusBadge';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ProjectStepper } from '../../components/ProjectStepper';
+import { ScrollJourneyRoadmap } from '../../components/ScrollJourneyRoadmap';
 import {
   Layers,
   FolderKanban,
@@ -15,6 +16,7 @@ import {
   FileCheck2,
   HelpCircle,
   Sparkles,
+  BookOpen,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -64,11 +66,14 @@ export const StudentDashboard = () => {
             Track project milestones, upload synopsis & reports, view presentation scores and faculty feedback.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <Link to="/student/submissions" className="btn btn-primary btn-sm">
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link to="/student/diary" className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <BookOpen size={16} /> Log Project Diary
+          </Link>
+          <Link to="/student/submissions" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Upload size={16} /> Submissions
           </Link>
-          <Link to="/student/requests" className="btn btn-secondary btn-sm">
+          <Link to="/student/requests" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <HelpCircle size={16} /> Contact Guide
           </Link>
         </div>
@@ -169,6 +174,12 @@ export const StudentDashboard = () => {
           <ProjectStepper milestones={project.milestones} />
         </div>
       )}
+
+      {/* Interactive Scroll-Driven Horizontal Journey Track */}
+      <ScrollJourneyRoadmap
+        milestones={project?.milestones}
+        progressPercentage={project?.progressPercentage || 0}
+      />
     </div>
   );
 };
@@ -218,7 +229,7 @@ export const StudentGroupPage = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '0.875rem',
-                  backgroundColor: '#fafbfc',
+                  backgroundColor: 'var(--bg-subtle)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-color)',
                 }}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal';
 import {
@@ -58,7 +59,7 @@ export const StudentMeetingsPage = () => {
                 {m.purpose || 'Project guidance session'}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', color: '#64748b' }}>
-                <div><strong>Date & Time:</strong> {new Date(m.meetingDate).toLocaleDateString()} at {m.meetingTime}</div>
+                <div><strong>Date & Time:</strong> {formatDate(m.meetingDate)} at {m.meetingTime}</div>
                 <div><strong>Venue:</strong> {m.venue}</div>
                 <div><strong>Guide:</strong> {m.guideName}</div>
               </div>
@@ -115,7 +116,7 @@ export const StudentNoticesPage = () => {
             </p>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
               <span>Published by <strong>{n.publishedByName}</strong></span>
-              <span>Valid till {new Date(n.toDate).toLocaleDateString()}</span>
+              <span>Valid till {formatDate(n.toDate)}</span>
             </div>
           </div>
         ))}
@@ -221,14 +222,14 @@ export const StudentRequestsPage = () => {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.75rem' }}>
-                Sent on {new Date(r.createdAt).toLocaleString()} to {r.guideName}
+                Sent on {formatDateTime(r.createdAt)} to {r.guideName}
               </div>
 
               {/* Guide Response Banner */}
               {r.guideResponse ? (
                 <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ecfdf5', borderRadius: 'var(--radius-sm)', border: '1px solid #a7f3d0' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#065f46', textTransform: 'uppercase', marginBottom: '2px' }}>
-                    Response from {r.guideName} ({new Date(r.respondedAt).toLocaleDateString()}):
+                    Response from {r.guideName} ({formatDate(r.respondedAt)}):
                   </div>
                   <div style={{ fontSize: '0.875rem', color: '#065f46', fontWeight: 500 }}>
                     {r.guideResponse}

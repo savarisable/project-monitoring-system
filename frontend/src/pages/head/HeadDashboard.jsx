@@ -135,7 +135,7 @@ export const HeadDashboard = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '0.75rem',
-                  backgroundColor: '#f8fafc',
+                  backgroundColor: 'var(--bg-subtle)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-color)',
                 }}

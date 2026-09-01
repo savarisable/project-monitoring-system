@@ -1,23 +1,38 @@
 import React from 'react';
 import { X, AlertCircle } from 'lucide-react';
 
-export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = '600px' }) => {
+export const Modal = ({ isOpen, onClose, title, children, footer, maxWidth = '650px' }) => {
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className="modal-container"
+        className="modal-content modal-container"
         style={{ maxWidth }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-main)' }}>{title}</h3>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+            {title}
+          </h3>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+            style={{
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              transition: 'all 0.15s ease',
+            }}
+            title="Close"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
         <div className="modal-body">{children}</div>
@@ -37,7 +52,7 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title = 'Confirm Acti
       title={title}
       maxWidth="480px"
       footer={
-        <>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', width: '100%' }}>
           <button className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>
@@ -50,7 +65,7 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title = 'Confirm Acti
           >
             {confirmText}
           </button>
-        </>
+        </div>
       }
     >
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
