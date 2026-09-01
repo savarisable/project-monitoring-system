@@ -1,4 +1,5 @@
 {
-  "summary": "package.json for React frontend with React Router DOM, Lucide icons, and Vite",
-  "updatedAt": "2026-08-25T14:59:48.275885400Z"
+  "summary": "Update frontend package.json build script to use npx vite build",
+  "updatedAt": "2026-09-01T10:55:22.325665Z",
+  "userFacing": true
 }

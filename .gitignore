@@ -1,17 +1,26 @@
 # Maven
-backend/target/
-backend/.mvn/wrapper/maven-wrapper.jar
+target/
+**/target/
 *.class
+*.jar
 
-# Node / Vite
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
+# Node & Vite
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.vite/
+**/.vite/
 
-# IDE / OS
+# Database & Local Logs
+backend/data/*.db
+data/
+*.log
+uploads/
+
+# IDE & OS
 .idea/
 *.iml
 .vscode/
 .DS_Store
 Thumbs.db
-*.log
