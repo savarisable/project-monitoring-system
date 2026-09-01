@@ -1,5 +1,5 @@
 {
-  "summary": "Update PUSH-TO-MY-REPO.bat with full git add -A and cache cleanup",
-  "updatedAt": "2026-09-01T10:58:21.938178900Z",
+  "summary": "Update PUSH-TO-MY-REPO.bat to bundle images and push clean frontend build",
+  "updatedAt": "2026-09-01T11:02:42.426595Z",
   "userFacing": true
 }

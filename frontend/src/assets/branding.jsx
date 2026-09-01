@@ -1,7 +1,7 @@
 import React from 'react';
-import collegeBanner from '@uploaded/media_1787774560606.png';
-import collegeLogo from '@uploaded/media_1787774574339.jpg';
-import naacBadgeImg from '@uploaded/media_1788250515807.png';
+import collegeBanner from './collegeBanner.png';
+import collegeLogo from './collegeLogo.jpg';
+import naacBadgeImg from './naacBadge.png';
 
 export { collegeBanner, collegeLogo, naacBadgeImg };
 
@@ -32,98 +32,99 @@ export const CollegeBanner = () => {
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
-        padding: '0.65rem 2.25rem',
-        gap: '2rem',
-        boxSizing: 'border-box',
+        padding: '0.75rem 1.5rem',
         backgroundColor: '#ffffff',
+        borderBottom: '3px solid #1e3a8a',
+        boxSizing: 'border-box',
+        gap: '1.5rem',
+        flexWrap: 'nowrap',
       }}
     >
-      {/* Left: Round Logo + Red Separator + Official College Typography */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flex: 1, minWidth: 0 }}>
+      {/* Left: Circular College Emblem */}
+      <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
         <img
           src={collegeLogo}
           alt="P. R. Pote Patil College Emblem"
           style={{
-            width: '88px',
-            height: '88px',
-            borderRadius: '50%',
-            objectFit: 'cover',
+            height: '80px',
+            width: '80px',
+            objectFit: 'contain',
             display: 'block',
-            flexShrink: 0,
           }}
         />
+      </div>
 
-        {/* Red Vertical Dividing Bar */}
+      {/* Middle: Prominent Official College Name Typography */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.25rem',
+          flex: 1,
+          justifyContent: 'center',
+          textAlign: 'center',
+        }}
+      >
+        {/* Red dividing line */}
         <div
           style={{
             width: '4px',
-            height: '76px',
+            height: '65px',
             backgroundColor: '#dc2626',
             borderRadius: '2px',
             flexShrink: 0,
           }}
         />
 
-        {/* Full College Name & Autonomous University Affiliation */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <span
             style={{
-              fontSize: '2.15rem',
+              fontSize: '1.95rem',
               fontWeight: 900,
               color: '#dc2626',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.1,
-              fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+              letterSpacing: '0.02em',
+              lineHeight: 1.15,
+              textTransform: 'uppercase',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            P. R. Pote Patil
-          </div>
-          <div
+            P. R. Pote (Patil) Education &amp; Welfare Trust's Group of Educational Institutes
+          </span>
+
+          <span
             style={{
-              fontSize: '1.65rem',
+              fontSize: '1.5rem',
               fontWeight: 800,
               color: '#1e3a8a',
-              letterSpacing: '-0.01em',
+              letterSpacing: '0.01em',
               lineHeight: 1.2,
               marginTop: '2px',
-              fontFamily: "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            College of Engineering & Management, Amravati
-          </div>
-          <div
+            College of Engineering &amp; Management, Amravati
+          </span>
+
+          <span
             style={{
-              fontSize: '0.95rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
               color: '#ea580c',
-              fontWeight: 700,
-              marginTop: '4px',
-              letterSpacing: '0.01em',
+              letterSpacing: '0.03em',
+              lineHeight: 1.2,
+              marginTop: '3px',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            An Autonomous Institute Affiliated to Sant Gadge Baba Amravati University
-          </div>
+            (An Autonomous Institute Affiliated to Sant Gadge Baba Amravati University)
+          </span>
         </div>
       </div>
 
-      {/* Right: Seamless NAAC A++ Ribbon Seal */}
-      <NaacBadge size={88} />
+      {/* Right: Golden NAAC A++ Ribbon Seal */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
+        <NaacBadge size={80} />
+      </div>
     </div>
-  );
-};
-
-// Circular College Emblem Component
-export const CollegeEmblem = ({ size = 64 }) => {
-  return (
-    <img
-      src={collegeLogo}
-      alt="P. R. Pote Patil College Logo"
-      style={{
-        width: `${size}px`,
-        height: `${size}px`,
-        borderRadius: '50%',
-        objectFit: 'cover',
-        display: 'block',
-      }}
-    />
   );
 };
