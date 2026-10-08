@@ -1,17 +1,16 @@
 package com.academic.projectmonitoring.service;
 
-import com.academic.projectmonitoring.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.net.MalformedURLException;
+import java.nio.file.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -19,58 +18,61 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
 
-    private final Path fileStorageLocation;
-    
-    private final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
-        "pdf", "doc", "docx", "ppt", "pptx", "txt", "rtf",
-        "mp4", "mkv", "mov", "avi", "webm",
-        "zip", "rar", "7z", "tar", "gz",
-        "png", "jpg", "jpeg", "webp", "gif"
+    @Value("${file.upload-dir:./uploads}")
+    private String uploadDir;
+
+    private Path fileStorageLocation;
+
+    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
+            "pdf", "doc", "docx", "ppt", "pptx", "txt", "rtf",
+            "mp4", "mkv", "mov", "avi", "webm",
+            "zip", "rar", "7z", "tar", "gz",
+            "png", "jpg", "jpeg", "webp"
     );
 
-    public FileStorageService(@Value("${app.upload.dir:./uploads}") String uploadDir) {
+    @PostConstruct
+    public void init() {
         this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.fileStorageLocation);
         } catch (Exception ex) {
-            throw new RuntimeException("Could not create the directory where the uploaded files will be stored.", ex);
+            throw new RuntimeException("Could not create upload directory", ex);
         }
     }
 
-    public String storeFile(MultipartFile file, String groupCode, String milestoneName) {
-        if (file == null || file.isEmpty()) {
-            throw new BadRequestException("Failed to store empty file.");
+    public String storeFile(MultipartFile file) {
+        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+        String extension = "";
+        int i = originalFileName.lastIndexOf('.');
+        if (i > 0) {
+            extension = originalFileName.substring(i + 1).toLowerCase();
         }
 
-        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "document");
-
-        if (originalFileName.contains("..")) {
-            throw new BadRequestException("Filename contains invalid path sequence " + originalFileName);
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new RuntimeException("File type '." + extension + "' is not supported. Please upload MP4, ZIP, PDF, or Office documents.");
         }
 
-        String fileExtension = "";
-        int dotIndex = originalFileName.lastIndexOf('.');
-        if (dotIndex > 0) {
-            fileExtension = originalFileName.substring(dotIndex + 1).toLowerCase();
-        }
-
-        if (!ALLOWED_EXTENSIONS.contains(fileExtension)) {
-            throw new BadRequestException("Invalid file type (." + fileExtension + "). Supported: PDF, DOC, PPT, MP4 Video, ZIP, PNG/JPG.");
-        }
-
-        String cleanMilestone = milestoneName.replaceAll("[^a-zA-Z0-9_-]", "_");
-        String cleanGroup = groupCode.replaceAll("[^a-zA-Z0-9_-]", "_");
-        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
-        String targetFileName = cleanGroup + "_" + cleanMilestone + "_" + uniqueId + "." + fileExtension;
-
+        String uniqueFileName = UUID.randomUUID() + "_" + originalFileName.replaceAll("[^a-zA-Z0-9.-]", "_");
         try {
-            Path targetLocation = this.fileStorageLocation.resolve(targetFileName);
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            }
-            return targetFileName;
+            Path targetLocation = this.fileStorageLocation.resolve(uniqueFileName);
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            return uniqueFileName;
         } catch (IOException ex) {
-            throw new RuntimeException("Could not store file " + targetFileName + ". Please try again!", ex);
+            throw new RuntimeException("Could not store file " + originalFileName, ex);
+        }
+    }
+
+    public Resource loadFileAsResource(String fileName) {
+        try {
+            Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            if (resource.exists() && resource.isReadable()) {
+                return resource;
+            } else {
+                throw new RuntimeException("File not found: " + fileName);
+            }
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("File not found: " + fileName, ex);
         }
     }
 
