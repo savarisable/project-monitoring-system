@@ -1,16 +1,13 @@
-package com.academic.projectmonitoring.service;
+﻿package com.academic.projectmonitoring.service;
 
 import com.academic.projectmonitoring.exception.BadRequestException;
-import com.academic.projectmonitoring.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,9 +20,20 @@ import java.util.UUID;
 public class FileStorageService {
 
     private final Path fileStorageLocation;
-    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".pdf", ".doc", ".docx", ".ppt", ".pptx");
+    
+    // Comprehensive permitted academic deliverable extensions
+    private final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
+        // Documents & Presentations
+        "pdf", "doc", "docx", "ppt", "pptx", "txt", "rtf",
+        // Project Demo Videos
+        "mp4", "mkv", "mov", "avi", "webm",
+        // Source Code & Project Archives
+        "zip", "rar", "7z", "tar", "gz",
+        // Architecture Diagrams & Screenshots
+        "png", "jpg", "jpeg", "webp", "gif"
+    );
 
-    public FileStorageService(@Value("${app.file-storage.upload-dir:./uploads}") String uploadDir) {
+    public FileStorageService(@Value("${app.upload.dir:./uploads}") String uploadDir) {
         this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.fileStorageLocation);
@@ -34,85 +42,46 @@ public class FileStorageService {
         }
     }
 
-    public StoredFileInfo storeFile(MultipartFile file, Long groupId, String submissionType, int versionNumber) {
-        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "document.pdf");
+    public String storeFile(MultipartFile file, String groupCode, String milestoneName) {
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("Failed to store empty file.");
+        }
 
-        // Validate extension
-        String extension = "";
+        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "document");
+
+        // Security check
+        if (originalFileName.contains("..")) {
+            throw new BadRequestException("Filename contains invalid path sequence " + originalFileName);
+        }
+
+        String fileExtension = "";
         int dotIndex = originalFileName.lastIndexOf('.');
         if (dotIndex > 0) {
-            extension = originalFileName.substring(dotIndex).toLowerCase();
+            fileExtension = originalFileName.substring(dotIndex + 1).toLowerCase();
         }
 
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new BadRequestException("Invalid file type. Only PDF, DOC, DOCX, PPT, and PPTX files are permitted.");
+        if (!ALLOWED_EXTENSIONS.contains(fileExtension)) {
+            throw new BadRequestException("Invalid file type (." + fileExtension + "). Supported formats: PDF, DOC, PPT, MP4 Video, ZIP, and PNG/JPG.");
         }
 
-        // Generate sanitized unique filename
-        String cleanType = submissionType.replaceAll("[^a-zA-Z0-9_]", "_");
-        String uniqueFileName = "Group_" + groupId + "_" + cleanType + "_v" + versionNumber + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
+        // Clean name formatted with group and milestone
+        String cleanMilestone = milestoneName.replaceAll("[^a-zA-Z0-9_-]", "_");
+        String cleanGroup = groupCode.replaceAll("[^a-zA-Z0-9_-]", "_");
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        String targetFileName = cleanGroup + "_" + cleanMilestone + "_" + uniqueId + "." + fileExtension;
 
         try {
-            if (uniqueFileName.contains("..")) {
-                throw new BadRequestException("Invalid filename path sequence " + uniqueFileName);
+            Path targetLocation = this.fileStorageLocation.resolve(targetFileName);
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING);
             }
-
-            Path targetLocation = this.fileStorageLocation.resolve(uniqueFileName);
-            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
-            return new StoredFileInfo(targetLocation.toString(), originalFileName, file.getSize());
+            return targetFileName;
         } catch (IOException ex) {
-            throw new RuntimeException("Could not store file " + uniqueFileName + ". Please try again!", ex);
+            throw new RuntimeException("Could not store file " + targetFileName + ". Please try again!", ex);
         }
     }
 
-    public Resource loadFileAsResource(String filePath) {
-        try {
-            Path file = Paths.get(filePath).toAbsolutePath().normalize();
-            if (!Files.exists(file)) {
-                file = this.fileStorageLocation.resolve(Paths.get(filePath).getFileName()).normalize();
-            }
-            if (!Files.exists(file)) {
-                // Ensure parent directory exists and generate a valid minimal PDF file
-                if (file.getParent() != null) {
-                    Files.createDirectories(file.getParent());
-                }
-                String samplePdf = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n178\n%%EOF\n";
-                Files.write(file, samplePdf.getBytes());
-            }
-
-            Resource resource = new UrlResource(file.toUri());
-            if (resource.exists() && resource.isReadable()) {
-                return resource;
-            } else {
-                throw new ResourceNotFoundException("File not found or unreadable: " + filePath);
-            }
-        } catch (Exception ex) {
-            throw new ResourceNotFoundException("Could not load file: " + filePath);
-        }
-    }
-
-    public static class StoredFileInfo {
-        private final String filePath;
-        private final String originalFileName;
-        private final long fileSize;
-
-        public StoredFileInfo(String filePath, String originalFileName, long fileSize) {
-            this.filePath = filePath;
-            this.originalFileName = originalFileName;
-            this.fileSize = fileSize;
-        }
-
-        public String getFilePath() {
-            return filePath;
-        }
-
-        public String getOriginalFileName() {
-            return originalFileName;
-        }
-
-        public long getFileSize() {
-            return fileSize;
-        }
+    public Path loadFileAsPath(String fileName) {
+        return this.fileStorageLocation.resolve(fileName).normalize();
     }
 }
