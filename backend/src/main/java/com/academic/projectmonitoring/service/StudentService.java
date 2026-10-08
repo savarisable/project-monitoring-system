@@ -295,19 +295,19 @@ public class StudentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student profile not found for user ID: " + userId));
     }
 
-    public Object getMyProjectDiary(Long studentId) {
+    
+    public java.util.List<com.academic.projectmonitoring.dto.response.ProjectDiaryDto> getMyProjectDiary(Long studentId) {
         return java.util.Collections.emptyList();
     }
 
-    public Object getMyWorkLogs(Long studentId) {
+    public java.util.List<com.academic.projectmonitoring.dto.response.StudentWorkLogDto> getMyWorkLogs(Long studentId) {
         return java.util.Collections.emptyList();
     }
 
-    public Object createStudentWorkLog(Long studentId, com.academic.projectmonitoring.dto.request.StudentWorkLogRequest request) {
-        return java.util.Collections.singletonMap("message", "Work log created successfully");
+    public com.academic.projectmonitoring.dto.response.StudentWorkLogDto createStudentWorkLog(Long studentId, com.academic.projectmonitoring.dto.request.StudentWorkLogRequest request) {
+        return new com.academic.projectmonitoring.dto.response.StudentWorkLogDto();
     }
 
     public void deleteMyWorkLog(Long studentId, Long logId) {
-        log.info("Work log {} deleted for student {}", logId, studentId);
     }
 }

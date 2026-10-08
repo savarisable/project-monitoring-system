@@ -6,10 +6,6 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import lombok.Data;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.Builder;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
@@ -34,16 +30,42 @@ public class FileStorageService {
             "png", "jpg", "jpeg", "webp"
     );
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
     public static class StoredFileInfo {
-        private String fileName;
+        private String originalFileName;
+        private String storedFileName;
         private String filePath;
         private String fileUrl;
         private Long fileSize;
         private String contentType;
+
+        public StoredFileInfo() {}
+
+        public StoredFileInfo(String originalFileName, String storedFileName, String filePath, String fileUrl, Long fileSize, String contentType) {
+            this.originalFileName = originalFileName;
+            this.storedFileName = storedFileName;
+            this.filePath = filePath;
+            this.fileUrl = fileUrl;
+            this.fileSize = fileSize;
+            this.contentType = contentType;
+        }
+
+        public String getOriginalFileName() { return originalFileName; }
+        public void setOriginalFileName(String originalFileName) { this.originalFileName = originalFileName; }
+
+        public String getStoredFileName() { return storedFileName; }
+        public void setStoredFileName(String storedFileName) { this.storedFileName = storedFileName; }
+
+        public String getFilePath() { return filePath; }
+        public void setFilePath(String filePath) { this.filePath = filePath; }
+
+        public String getFileUrl() { return fileUrl; }
+        public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+
+        public Long getFileSize() { return fileSize; }
+        public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
+
+        public String getContentType() { return contentType; }
+        public void setContentType(String contentType) { this.contentType = contentType; }
     }
 
     @PostConstruct
@@ -80,13 +102,14 @@ public class FileStorageService {
 
     public StoredFileInfo storeFile(MultipartFile file, Long groupId, String milestoneCode, int versionNumber) {
         String storedName = storeFile(file);
-        return StoredFileInfo.builder()
-                .fileName(file.getOriginalFilename())
-                .filePath(storedName)
-                .fileUrl("/api/files/" + storedName)
-                .fileSize(file.getSize())
-                .contentType(file.getContentType())
-                .build();
+        return new StoredFileInfo(
+                file.getOriginalFilename(),
+                storedName,
+                storedName,
+                "/api/files/" + storedName,
+                file.getSize(),
+                file.getContentType()
+        );
     }
 
     public Resource loadFileAsResource(String fileName) {
