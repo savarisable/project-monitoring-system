@@ -5,7 +5,7 @@ import naacBadgeImg from './naacBadge.png';
 
 export { collegeBanner, collegeLogo, naacBadgeImg };
 
-export const CollegeEmblem = ({ size = 80 }) => (
+export const CollegeEmblem = ({ size = 60 }) => (
   <img
     src={collegeLogo}
     alt="P. R. Pote Patil College Emblem"
@@ -20,7 +20,7 @@ export const CollegeEmblem = ({ size = 80 }) => (
 
 export const CollegeLogo = CollegeEmblem;
 
-export const NaacBadge = ({ size = 86 }) => (
+export const NaacBadge = ({ size = 65 }) => (
   <img
     src={naacBadgeImg}
     alt="Accredited with Grade A++ NAAC"
@@ -30,7 +30,6 @@ export const NaacBadge = ({ size = 86 }) => (
       maxHeight: `${size}px`,
       objectFit: 'contain',
       display: 'block',
-      flexShrink: 0,
       mixBlendMode: 'multiply',
       backgroundColor: 'transparent',
     }}
@@ -39,92 +38,39 @@ export const NaacBadge = ({ size = 86 }) => (
 
 export const CollegeBanner = () => {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        padding: '0.75rem 1.5rem',
-        backgroundColor: '#ffffff',
-        borderBottom: '3px solid #1e3a8a',
-        boxSizing: 'border-box',
-        gap: '1.5rem',
-        flexWrap: 'nowrap',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-        <CollegeEmblem size={80} />
-      </div>
+    <header className="w-full bg-white border-b-2 sm:border-b-4 border-blue-900 shadow-sm">
+      <div className="max-w-7xl mx-auto px-3 py-2 sm:px-6 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Emblem */}
+        <div className="flex-shrink-0 flex items-center">
+          <img
+            src={collegeLogo}
+            alt="College Emblem"
+            className="h-11 w-11 sm:h-16 sm:w-16 md:h-20 md:w-20 object-contain"
+          />
+        </div>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1.25rem',
-          flex: 1,
-          justifyContent: 'center',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            width: '4px',
-            height: '65px',
-            backgroundColor: '#dc2626',
-            borderRadius: '2px',
-            flexShrink: 0,
-          }}
-        />
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span
-            style={{
-              fontSize: '1.95rem',
-              fontWeight: 900,
-              color: '#dc2626',
-              letterSpacing: '0.02em',
-              lineHeight: 1.15,
-              textTransform: 'uppercase',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            P. R. Pote (Patil) Education & Welfare Trust's Group of Educational Institutes
+        {/* Center: Official College Typography */}
+        <div className="flex-1 text-center flex flex-col items-center justify-center px-1">
+          <span className="text-[0.65rem] sm:text-xs md:text-sm lg:text-base font-bold text-red-600 tracking-wide uppercase leading-tight">
+            P. R. Pote (Patil) Education &amp; Welfare Trust's Group of Institutes
           </span>
-
-          <span
-            style={{
-              fontSize: '1.5rem',
-              fontWeight: 800,
-              color: '#1e3a8a',
-              letterSpacing: '0.01em',
-              lineHeight: 1.2,
-              marginTop: '2px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            College of Engineering & Management, Amravati
+          <span className="text-xs sm:text-base md:text-lg lg:text-xl font-extrabold text-blue-950 tracking-tight leading-tight mt-0.5 sm:mt-1">
+            College of Engineering &amp; Management, Amravati
           </span>
-
-          <span
-            style={{
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: '#ea580c',
-              letterSpacing: '0.03em',
-              lineHeight: 1.2,
-              marginTop: '3px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            (An Autonomous Institute Affiliated to Sant Gadge Baba Amravati University)
+          <span className="hidden sm:inline-block text-[0.65rem] sm:text-xs font-semibold text-orange-600 leading-tight mt-0.5">
+            (An Autonomous Institute Affiliated to SGBAU Amravati &bull; Approved by AICTE)
           </span>
         </div>
-      </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
-        <NaacBadge size={80} />
+        {/* Right: NAAC A++ Seal */}
+        <div className="flex-shrink-0 flex items-center justify-end">
+          <img
+            src={naacBadgeImg}
+            alt="NAAC A++"
+            className="h-10 sm:h-14 md:h-16 w-auto object-contain mix-blend-multiply"
+          />
+        </div>
       </div>
-    </div>
+    </header>
   );
 };
