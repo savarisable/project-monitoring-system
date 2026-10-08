@@ -1,11 +1,25 @@
-import React from 'react';
+﻿import React from 'react';
 import collegeBanner from './collegeBanner.png';
 import collegeLogo from './collegeLogo.jpg';
 import naacBadgeImg from './naacBadge.png';
 
 export { collegeBanner, collegeLogo, naacBadgeImg };
 
-// Real Authentic NAAC A++ Ribbon Seal (Seamless background blend)
+export const CollegeEmblem = ({ size = 80 }) => (
+  <img
+    src={collegeLogo}
+    alt="P. R. Pote Patil College Emblem"
+    style={{
+      height: `${size}px`,
+      width: `${size}px`,
+      objectFit: 'contain',
+      display: 'block',
+    }}
+  />
+);
+
+export const CollegeLogo = CollegeEmblem;
+
 export const NaacBadge = ({ size = 86 }) => (
   <img
     src={naacBadgeImg}
@@ -23,7 +37,6 @@ export const NaacBadge = ({ size = 86 }) => (
   />
 );
 
-// Large Official Website-Style Full-Width Header
 export const CollegeBanner = () => {
   return (
     <div
@@ -40,21 +53,10 @@ export const CollegeBanner = () => {
         flexWrap: 'nowrap',
       }}
     >
-      {/* Left: Circular College Emblem */}
       <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-        <img
-          src={collegeLogo}
-          alt="P. R. Pote Patil College Emblem"
-          style={{
-            height: '80px',
-            width: '80px',
-            objectFit: 'contain',
-            display: 'block',
-          }}
-        />
+        <CollegeEmblem size={80} />
       </div>
 
-      {/* Middle: Prominent Official College Name Typography */}
       <div
         style={{
           display: 'flex',
@@ -65,7 +67,6 @@ export const CollegeBanner = () => {
           textAlign: 'center',
         }}
       >
-        {/* Red dividing line */}
         <div
           style={{
             width: '4px',
@@ -88,7 +89,7 @@ export const CollegeBanner = () => {
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            P. R. Pote (Patil) Education &amp; Welfare Trust's Group of Educational Institutes
+            P. R. Pote (Patil) Education & Welfare Trust's Group of Educational Institutes
           </span>
 
           <span
@@ -102,7 +103,7 @@ export const CollegeBanner = () => {
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            College of Engineering &amp; Management, Amravati
+            College of Engineering & Management, Amravati
           </span>
 
           <span
@@ -121,7 +122,6 @@ export const CollegeBanner = () => {
         </div>
       </div>
 
-      {/* Right: Golden NAAC A++ Ribbon Seal */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexShrink: 0 }}>
         <NaacBadge size={80} />
       </div>
