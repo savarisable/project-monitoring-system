@@ -1,415 +1,197 @@
-import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
-import { StatusBadge } from '../../components/StatusBadge';
-import { FileUploadModal } from '../../components/FileUploadModal';
-import { Modal } from '../../components/Modal';
-import {
-  Upload,
-  Download,
-  FileCheck2,
-  AlertTriangle,
-  CheckCircle2,
-  History,
-  Calendar,
-  Award,
+﻿import React, { useState, useEffect } from 'react';
+import { studentApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import FileUploadModal from '../../components/FileUploadModal';
+import { 
+  FileCheck, 
+  Upload, 
+  Clock, 
+  CheckCircle2, 
+  AlertCircle, 
+  ExternalLink, 
+  FileText, 
+  ShieldAlert, 
+  Crown, 
+  Users, 
+  Sparkles 
 } from 'lucide-react';
 
-export const StudentSubmissionsPage = () => {
-  const [project, setProject] = useState(null);
-  const [submissions, setSubmissions] = useState([]);
+const StudentSubmissionsPage = () => {
+  const { user } = useAuth();
+  const [milestones, setMilestones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMilestone, setSelectedMilestone] = useState(null);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [bannerNotice, setBannerNotice] = useState('');
 
-  const loadData = async () => {
-    setLoading(true);
+  const fetchMilestones = async () => {
     try {
-      const [projectData, subsData] = await Promise.all([
-        api.student.getMyProject(),
-        api.student.getSubmissions(),
-      ]);
-      setProject(projectData);
-      setSubmissions(subsData);
+      setLoading(true);
+      const res = await studentApi.getMilestones();
+      setMilestones(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch milestone submissions', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    fetchMilestones();
   }, []);
 
-  const handleOpenUpload = (milestone, submission) => {
+  const handleUploadClick = (milestone) => {
     setSelectedMilestone(milestone);
-    setSelectedSubmission(submission);
-    setIsUploadModalOpen(true);
+    setIsUploadOpen(true);
   };
 
-  const handleUploadFile = async (file, notes) => {
-    try {
-      await api.student.uploadSubmission(selectedMilestone.id, notes, file);
-      setMessage(`Document for '${selectedMilestone.title}' submitted successfully.`);
-      loadData();
-    } catch (err) {
-      throw err;
-    }
+  const handleUploadSuccess = () => {
+    setBannerNotice('Milestone Deliverable Uploaded Successfully! All team members and guide synchronized.');
+    fetchMilestones();
+    setTimeout(() => setBannerNotice(''), 6000);
   };
 
-  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>Loading submissions...</div>;
+  const isLeader = milestones.length > 0 ? milestones[0].isLeader : true;
+  const leaderName = milestones.length > 0 ? milestones[0].leaderName : 'Group Leader';
 
   return (
-    <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Project Document Submissions</h1>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-          Submit synopsis, design reports, progress updates and final project dissertations for Guide review.
-        </p>
-      </div>
-
-      {message && (
-        <div style={{ padding: '0.75rem 1rem', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
-          {message}
+    <div className="space-y-4 sm:space-y-6 animate-fadeIn pb-8">
+      
+      {/* Top Banner Notice */}
+      {bannerNotice && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs sm:text-sm flex items-center gap-3 shadow-md animate-bounce">
+          <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0" />
+          <span className="font-semibold">{bannerNotice}</span>
         </div>
       )}
 
-      {/* Submissions List per Milestone */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {project?.milestones?.map((m) => {
-          const sub = submissions.find((s) => s.projectMilestoneId === m.id);
-          const isCorrectionRequired = sub?.status === 'CORRECTION_REQUIRED';
-          const isVerified = sub?.status === 'VERIFIED' || m.status === 'COMPLETED';
-          const isSubmitted = sub?.status === 'ONLINE_SUBMITTED' || sub?.status === 'SUBMITTED' || sub?.status === 'RESUBMITTED';
-          const latestVersion = sub?.versions?.[0];
+      {/* Header Info */}
+      <div className="bg-white dark:bg-slate-800/80 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Project Deliverables &amp; Submissions
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/50">
+              Team Synced
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Upload project documents, synopsis, demo screen recordings, and code packages.
+          </p>
+        </div>
 
-          const isGuideAllocation = m.title.toLowerCase().includes('guide allocation');
-          const isVerificationStage = m.title.toLowerCase().includes('verification') && !m.title.toLowerCase().includes('submission');
+        {/* Leader Info Pill */}
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
+          <Crown size={16} className="text-amber-500 flex-shrink-0" />
+          <div>
+            <p className="font-bold leading-tight">{isLeader ? 'You are Group Leader' : `Leader: ${leaderName}`}</p>
+            <p className="text-[10px] text-slate-400 leading-tight">
+              {isLeader ? 'Full Deliverable Upload Authority' : 'Automatic Live Synchronization Active'}
+            </p>
+          </div>
+        </div>
+      </div>
 
-          return (
-            <div
-              key={m.id}
-              className="card"
-              style={{
-                marginBottom: 0,
-                borderLeft: isVerified
-                  ? '4px solid #10b981'
-                  : isCorrectionRequired
-                  ? '4px solid #ef4444'
-                  : isSubmitted
-                  ? '4px solid #3b82f6'
-                  : '4px solid var(--border-color)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.75rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      {m.order}. {m.title}
-                    </h3>
-                    {sub ? <StatusBadge status={sub.status} /> : <StatusBadge status={m.status} />}
+      {/* Milestones Submission List */}
+      {loading ? (
+        <div className="p-12 text-center text-slate-400">
+          <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-xs">Loading project milestones...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:gap-4">
+          {milestones.map((m, idx) => {
+            const hasSubmission = Boolean(m.submissionStatus);
+            const isApproved = m.submissionStatus === 'APPROVED' || m.status === 'COMPLETED';
+
+            return (
+              <div
+                key={m.id}
+                className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:border-blue-400/50 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+              >
+                {/* Milestone Info */}
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${
+                    isApproved
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                      : hasSubmission
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                  }`}>
+                    {idx + 1}
                   </div>
-                  <p style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: '4px' }}>
-                    {m.description}
-                  </p>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight">
+                        {m.title}
+                      </h3>
+                      {isApproved ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                          ✓ Verified &amp; Approved
+                        </span>
+                      ) : hasSubmission ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                          Submitted (v{m.currentVersion || 1}) - Under Review
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                          Pending Submission
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                      {m.description || 'Deliverable milestone for project progress tracking.'}
+                    </p>
+
+                    {/* Meta info */}
+                    <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400 flex-wrap">
+                      {m.deadline && <span>📅 Deadline: <strong className="text-slate-700 dark:text-slate-300">{m.deadline}</strong></span>}
+                      {m.submittedByName && <span>👤 Uploaded by: <strong className="text-slate-700 dark:text-slate-300">{m.submittedByName}</strong></span>}
+                      {m.guideRemarks && <span className="text-orange-500 font-semibold">💬 Guide Note: {m.guideRemarks}</span>}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  {isGuideAllocation ? (
-                    <span className="badge badge-success" style={{ padding: '0.35rem 0.65rem' }}>
-                      <CheckCircle2 size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} /> Guide Allocated
-                    </span>
-                  ) : isVerificationStage ? (
-                    <span className={`badge ${isVerified ? 'badge-success' : 'badge-neutral'}`} style={{ padding: '0.35rem 0.65rem' }}>
-                      {isVerified ? '✓ Verified by Faculty' : '⏳ Guide Verification Step'}
-                    </span>
-                  ) : (
-                    <>
-                      {(!sub || isCorrectionRequired) && (
-                        <button
-                          className={`btn btn-${isCorrectionRequired ? 'danger' : 'primary'} btn-sm`}
-                          onClick={() => handleOpenUpload(m, sub)}
-                        >
-                          <Upload size={14} /> {isCorrectionRequired ? `Resubmit (Version ${(sub?.currentVersion || 1) + 1})` : 'Upload Deliverables'}
-                        </button>
-                      )}
-
-                      {sub?.versions?.length > 0 && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setSelectedSubmission(sub);
-                            setIsHistoryModalOpen(true);
-                          }}
-                        >
-                          <History size={14} /> Versions ({sub.versions.length})
-                        </button>
-                      )}
-                    </>
+                {/* Upload / View Actions */}
+                <div className="flex items-center gap-2 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700/50">
+                  {m.fileUrl && (
+                    <a
+                      href={m.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 transition flex items-center gap-1.5"
+                    >
+                      <FileText size={14} />
+                      <span>View File</span>
+                    </a>
                   )}
+
+                  <button
+                    onClick={() => handleUploadClick(m)}
+                    className="flex-1 md:flex-initial px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-md shadow-blue-600/20 flex items-center justify-center gap-1.5"
+                  >
+                    <Upload size={14} />
+                    <span>{hasSubmission ? 'Upload New Version' : 'Upload Deliverable'}</span>
+                  </button>
                 </div>
               </div>
-
-              {/* Latest Submission Card Details */}
-              {sub && latestVersion && (
-                <div
-                  style={{
-                    padding: '0.875rem',
-                    backgroundColor: '#fafbfc',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                    marginTop: '0.5rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
-                      <span className="badge badge-neutral">V{latestVersion.versionNumber}</span>
-                      {latestVersion.fileName && (
-                        <a
-                          href={api.common.getFileDownloadUrl(latestVersion.id)}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}
-                        >
-                          <Download size={13} /> {latestVersion.fileName}
-                        </a>
-                      )}
-                      {latestVersion.submissionMode === 'OFFLINE' && (
-                        <span style={{ color: '#d97706', fontWeight: 600 }}>Physical Hardcopy</span>
-                      )}
-                    </div>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      Submitted {new Date(latestVersion.submittedAt).toLocaleString()}
-                    </span>
-                  </div>
-
-                  {latestVersion.studentNotes && (
-                    <div style={{ fontSize: '0.8125rem', color: '#475569', fontStyle: 'italic', marginBottom: '0.5rem' }}>
-                      <strong>Your Notes:</strong> "{latestVersion.studentNotes}"
-                    </div>
-                  )}
-
-                  {/* Guide Review Remarks Display */}
-                  {latestVersion.review ? (
-                    <div
-                      style={{
-                        padding: '0.75rem',
-                        backgroundColor: latestVersion.review.verdict === 'VERIFIED' ? '#ecfdf5' : '#fef2f2',
-                        border: '1px solid',
-                        borderColor: latestVersion.review.verdict === 'VERIFIED' ? '#a7f3d0' : '#fecaca',
-                        borderRadius: 'var(--radius-sm)',
-                        marginTop: '0.5rem',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.8125rem', color: latestVersion.review.verdict === 'VERIFIED' ? '#065f46' : '#991b1b' }}>
-                          Guide Verdict: {latestVersion.review.verdict}
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          {latestVersion.review.guideName}
-                        </span>
-                      </div>
-                      {latestVersion.review.predefinedFeedbackText && (
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#0f172a' }}>
-                          {latestVersion.review.predefinedFeedbackText}
-                        </div>
-                      )}
-                      {latestVersion.review.customRemarks && (
-                        <div style={{ fontSize: '0.8125rem', color: '#475569', marginTop: '2px' }}>
-                          <strong>Remarks:</strong> {latestVersion.review.customRemarks}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 500, marginTop: '0.25rem' }}>
-                      Document is currently under review by your Faculty Guide.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Upload Modal */}
       <FileUploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        onUpload={handleUploadFile}
-        milestoneTitle={selectedMilestone?.title}
-        currentVersion={selectedSubmission?.currentVersion || 0}
-        isResubmission={selectedSubmission?.status === 'CORRECTION_REQUIRED'}
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        milestone={selectedMilestone}
+        onSuccess={handleUploadSuccess}
       />
-
-      {/* Version History Modal */}
-      <Modal
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
-        title={selectedSubmission ? `${selectedSubmission.milestoneTitle} Version History` : 'History'}
-        maxWidth="650px"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {selectedSubmission?.versions?.map((v) => (
-            <div
-              key={v.id}
-              style={{
-                padding: '1rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: '#fafbfc',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--primary-700)' }}>
-                  Version {v.versionNumber} ({v.submissionMode})
-                </span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  {new Date(v.submittedAt).toLocaleString()}
-                </span>
-              </div>
-
-              {v.submissionMode === 'ONLINE' && v.fileName && (
-                <div style={{ marginBottom: '0.5rem' }}>
-                  <a
-                    href={api.common.getFileDownloadUrl(v.id)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-secondary btn-sm"
-                  >
-                    <Download size={14} /> Download {v.fileName}
-                  </a>
-                </div>
-              )}
-
-              {v.studentNotes && (
-                <div style={{ fontSize: '0.8125rem', color: '#334155', fontStyle: 'italic', marginBottom: '0.5rem' }}>
-                  <strong>Notes:</strong> "{v.studentNotes}"
-                </div>
-              )}
-
-              {v.review && (
-                <div
-                  style={{
-                    padding: '0.75rem',
-                    borderRadius: 'var(--radius-sm)',
-                    backgroundColor: v.review.verdict === 'VERIFIED' ? '#ecfdf5' : '#fef2f2',
-                    border: '1px solid',
-                    borderColor: v.review.verdict === 'VERIFIED' ? '#a7f3d0' : '#fecaca',
-                  }}
-                >
-                  <StatusBadge status={v.review.verdict} />
-                  {v.review.predefinedFeedbackText && (
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 600, marginTop: '0.25rem' }}>
-                      {v.review.predefinedFeedbackText}
-                    </div>
-                  )}
-                  {v.review.customRemarks && (
-                    <div style={{ fontSize: '0.8125rem', color: '#475569', marginTop: '0.25rem' }}>
-                      {v.review.customRemarks}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </Modal>
     </div>
   );
 };
 
-export const StudentPresentationsPage = () => {
-  const [presentations, setPresentations] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadPresentations = async () => {
-      setLoading(true);
-      try {
-        const data = await api.student.getPresentations();
-        setPresentations(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPresentations();
-  }, []);
-
-  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>Loading presentation schedule...</div>;
-
-  return (
-    <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Presentations & Marksheet</h1>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-          Review presentation schedules, seminar hall venues, and faculty viva evaluation scores.
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {presentations.map((p) => (
-          <div key={p.id} className="card" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--primary-900)' }}>
-                  Stage {p.presentationNumber}: {p.title}
-                </h3>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{p.description}</div>
-              </div>
-              <StatusBadge status={p.status} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', padding: '0.75rem', backgroundColor: '#fafbfc', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', marginBottom: '0.75rem' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Scheduled Date</span>
-                <div style={{ fontWeight: 600 }}>{new Date(p.scheduledDate).toLocaleDateString()}</div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Time Slot</span>
-                <div style={{ fontWeight: 600 }}>{p.startTime ? `${p.startTime} - ${p.endTime}` : 'TBA'}</div>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Venue</span>
-                <div style={{ fontWeight: 600 }}>{p.venue || 'Seminar Hall'}</div>
-              </div>
-            </div>
-
-            {/* Evaluation Score Card */}
-            {p.evaluation ? (
-              <div style={{ padding: '1rem', backgroundColor: '#ecfdf5', borderRadius: 'var(--radius-md)', border: '1px solid #a7f3d0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#065f46', textTransform: 'uppercase' }}>
-                      Marks Awarded by {p.evaluation.guideName}
-                    </span>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#065f46' }}>
-                      {p.evaluation.marksObtained} <span style={{ fontSize: '1rem', fontWeight: 500 }}>/ {p.evaluation.maxMarks}</span>
-                    </div>
-                  </div>
-                  <StatusBadge status={p.evaluation.attendanceStatus} />
-                </div>
-                {p.evaluation.remarks && (
-                  <div style={{ fontSize: '0.8125rem', color: '#065f46', borderTop: '1px solid #a7f3d0', paddingTop: '0.5rem' }}>
-                    <strong>Faculty Remarks:</strong> "{p.evaluation.remarks}"
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ fontSize: '0.8125rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                Evaluation pending presentation conduct.
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+export default StudentSubmissionsPage;
