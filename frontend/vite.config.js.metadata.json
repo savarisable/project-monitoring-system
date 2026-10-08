@@ -1,5 +1,0 @@
-{
-  "summary": "Update vite.config.js to be fully self-contained without machine-specific C: drive paths",
-  "updatedAt": "2026-09-01T11:02:08.690015200Z",
-  "userFacing": true
-}
