@@ -179,7 +179,9 @@ public class StudentService {
                 request.getStudentNotes(),
                 student.getUser()
         );
-        submissionVersionRepository.save(version);
+        submission = submissionRepository.saveAndFlush(submission);
+        version.setSubmission(submission);
+        submissionVersionRepository.saveAndFlush(version);
 
         submission.setCurrentVersion(versionNumber);
         submission.setStatus(isResubmission ? SubmissionStatus.RESUBMITTED : SubmissionStatus.ONLINE_SUBMITTED);
