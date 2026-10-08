@@ -1,276 +1,226 @@
-import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle2, AlertTriangle, Image, Video, Archive, Link as LinkIcon } from 'lucide-react';
-import { Modal } from './Modal';
+﻿import React, { useState } from 'react';
+import { X, Upload, CheckCircle2, AlertCircle, Video, FileText, Link, Sparkles } from 'lucide-react';
+import { studentApi } from '../services/api';
 
-export const FileUploadModal = ({ isOpen, onClose, onUpload, milestoneTitle, currentVersion = 1, isResubmission = false }) => {
+const FileUploadModal = ({ isOpen, onClose, milestone, onSuccess }) => {
   const [file, setFile] = useState(null);
-  const [studentNotes, setStudentNotes] = useState('');
-  const [demoLink, setDemoLink] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
-  const isDevPhase = milestoneTitle?.toLowerCase().includes('development') || milestoneTitle?.toLowerCase().includes('phase');
+  if (!isOpen || !milestone) return null;
+
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      if (selected.size > 100 * 1024 * 1024) {
+        setError('File size exceeds 100 MB limit. Please compress or provide a Google Drive / YouTube link below.');
+        setFile(null);
+        return;
+      }
+      setFile(selected);
+      setError('');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file && !demoLink.trim()) {
-      setError('Please select a file to upload or provide a video/project link.');
+    if (!file && !linkUrl.trim()) {
+      setError('Please choose a file to upload or enter a project/video link.');
       return;
     }
+
+    setLoading(true);
     setError('');
-    setIsSubmitting(true);
+
     try {
-      const combinedNotes = demoLink.trim()
-        ? (studentNotes.trim() ? `${studentNotes.trim()}\n\n[Project / Demo Video Link]: ${demoLink.trim()}` : `[Project / Demo Video Link]: ${demoLink.trim()}`)
-        : studentNotes.trim();
+      const formData = new FormData();
+      if (file) {
+        formData.append('file', file);
+      }
+      if (linkUrl.trim()) {
+        formData.append('linkUrl', linkUrl.trim());
+      }
+      if (remarks.trim()) {
+        formData.append('remarks', remarks.trim());
+      }
 
-      await onUpload(file, combinedNotes);
-      setFile(null);
-      setStudentNotes('');
-      setDemoLink('');
-      onClose();
+      await studentApi.submitMilestone(milestone.id, formData);
+      setSuccess(true);
+
+      setTimeout(() => {
+        setSuccess(false);
+        setFile(null);
+        setLinkUrl('');
+        setRemarks('');
+        if (onSuccess) onSuccess();
+        onClose();
+      }, 1500);
     } catch (err) {
-      setError(err.message || 'Upload failed');
+      setError(err.response?.data?.message || err.message || 'Upload failed. Please check file size and try again.');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
-  };
-
-  const getFileIcon = () => {
-    if (!file) return <Upload size={32} style={{ margin: '0 auto 0.75rem auto', color: 'var(--primary-600)' }} />;
-    const name = file.name.toLowerCase();
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) {
-      return <Image size={24} style={{ color: '#0ea5e9', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
-    }
-    if (name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov')) {
-      return <Video size={24} style={{ color: '#8b5cf6', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
-    }
-    if (name.endsWith('.zip') || name.endsWith('.rar')) {
-      return <Archive size={24} style={{ color: '#f59e0b', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
-    }
-    return <FileText size={24} style={{ color: 'var(--primary-600)', display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />;
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isResubmission ? `Resubmit ${milestoneTitle} (Version ${currentVersion + 1})` : `Upload ${milestoneTitle}`}
-      maxWidth="580px"
-    >
-      <form onSubmit={handleSubmit}>
-        {error && (
-          <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 'var(--radius-md)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-            {error}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+              <Upload size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight">
+                Upload Deliverable
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[260px] sm:max-w-xs">
+                {milestone.title}
+              </p>
+            </div>
           </div>
-        )}
-
-        <div className="form-group">
-          <label className="form-label">
-            {isDevPhase ? 'Select Project Deliverable (PDF, Photos, Demo Video, ZIP Code - Max 25MB)' : 'Select Document (PDF, DOCX, PPTX, Images - Max 25MB)'}
-          </label>
-          <div
-            style={{
-              border: '2px dashed var(--border-color)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '2rem 1rem',
-              textAlign: 'center',
-              backgroundColor: '#fafbfc',
-              cursor: 'pointer',
-            }}
-            onClick={() => document.getElementById('file-input-modal').click()}
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
-            {getFileIcon()}
-            <input
-              id="file-input-modal"
-              type="file"
-              accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.mp4,.webm,.zip,.rar"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setFile(e.target.files[0]);
-                  setError('');
-                }
-              }}
-            />
-            {file ? (
-              <div style={{ color: '#0f172a', fontWeight: 600 }}>
-                {file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)
-              </div>
-            ) : (
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          
+          {/* Success Notification Banner */}
+          {success && (
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center gap-3 animate-bounce">
+              <CheckCircle2 size={24} className="text-emerald-500 flex-shrink-0" />
               <div>
-                <p style={{ fontWeight: 600, color: 'var(--text-main)' }}>Click to browse or drag and drop file here</p>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-                  Supported: <strong>PDF, DOCX, PPTX, PNG/JPG (UI Photos), MP4 (Demo Video), ZIP</strong>
+                <p className="text-sm font-bold">Upload Successful! 🎉</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-300">
+                  Deliverable submitted for faculty guide review.
                 </p>
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle size={16} className="flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* File Upload Box */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Select Deliverable File (PDF, ZIP, MP4, Docs - Up to 100MB)
+            </label>
+            <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 rounded-xl p-4 text-center transition cursor-pointer bg-slate-50/50 dark:bg-slate-800/30">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                disabled={loading || success}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              {file ? (
+                <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400 font-semibold text-xs sm:text-sm">
+                  <FileText size={20} />
+                  <span className="truncate max-w-[240px]">{file.name}</span>
+                  <span className="text-[11px] text-slate-500">
+                    ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Upload size={24} className="mx-auto text-slate-400" />
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Tap or Drag &amp; Drop to Upload
+                  </p>
+                  <p className="text-[11px] text-slate-400">PDF, ZIP, MP4 Video, PNG up to 100MB</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Optional Demo Video / GitHub Link for Development Phases */}
-        <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <LinkIcon size={14} color="var(--primary-600)" /> Demo Video / Prototype / GitHub Link (Optional)
-          </label>
-          <input
-            type="url"
-            className="form-control"
-            placeholder="e.g. https://youtu.be/... or Google Drive video link or GitHub repository"
-            value={demoLink}
-            onChange={(e) => setDemoLink(e.target.value)}
-          />
-        </div>
+          {/* Video / Prototype Link */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <Link size={13} className="text-blue-500" />
+              <span>Demo Video / YouTube / GitHub Link (Optional)</span>
+            </label>
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://youtu.be/... or Google Drive video link"
+              disabled={loading || success}
+              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
 
-        <div className="form-group">
-          <label className="form-label">Submission Remarks / Notes (Optional)</label>
-          <textarea
-            className="form-control"
-            rows="3"
-            placeholder="Add brief details about this milestone submission, changes made, or key highlights..."
-            value={studentNotes}
-            onChange={(e) => setStudentNotes(e.target.value)}
-          ></textarea>
-        </div>
+          {/* Submission Remarks */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              Submission Remarks / Changelog (Optional)
+            </label>
+            <textarea
+              rows={2}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Brief details about what was accomplished in this milestone..."
+              disabled={loading || success}
+              className="w-full px-3 py-2 rounded-xl text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Uploading...' : 'Submit Deliverable'}
-          </button>
-        </div>
-      </form>
-    </Modal>
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading || success}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || success}
+              className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold text-white transition shadow-md ${
+                success
+                  ? 'bg-emerald-600 shadow-emerald-600/30'
+                  : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30 disabled:opacity-50'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Uploading Deliverable...</span>
+                </>
+              ) : success ? (
+                <>
+                  <CheckCircle2 size={15} />
+                  <span>Uploaded!</span>
+                </>
+              ) : (
+                <>
+                  <Upload size={15} />
+                  <span>Submit Deliverable</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 
-export const ReviewModal = ({ isOpen, onClose, onReview, submissionTitle, versionNumber, templates = [] }) => {
-  const [verdict, setVerdict] = useState('VERIFIED');
-  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
-  const [customRemarks, setCustomRemarks] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleTemplateClick = (tmpl) => {
-    setSelectedTemplateId(tmpl.id);
-    if (!customRemarks.trim()) {
-      setCustomRemarks(tmpl.messageTemplate);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsSubmitting(true);
-    try {
-      const selectedTmpl = templates.find((t) => t.id === selectedTemplateId);
-      await onReview({
-        verdict,
-        predefinedFeedbackId: selectedTemplateId,
-        predefinedFeedbackText: selectedTmpl ? selectedTmpl.messageTemplate : null,
-        customRemarks,
-      });
-      onClose();
-    } catch (err) {
-      setError(err.message || 'Review submission failed');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`Review ${submissionTitle} (Version ${versionNumber})`}
-      maxWidth="600px"
-    >
-      <form onSubmit={handleSubmit}>
-        {error && (
-          <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 'var(--radius-md)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-            {error}
-          </div>
-        )}
-
-        <div className="form-group">
-          <label className="form-label">Review Verdict *</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div
-              style={{
-                border: verdict === 'VERIFIED' ? '2px solid #10b981' : '1px solid var(--border-color)',
-                backgroundColor: verdict === 'VERIFIED' ? '#ecfdf5' : 'var(--bg-surface)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1rem',
-                cursor: 'pointer',
-                textAlign: 'center',
-              }}
-              onClick={() => setVerdict('VERIFIED')}
-            >
-              <CheckCircle2 size={24} style={{ color: '#10b981', margin: '0 auto 0.5rem auto' }} />
-              <div style={{ fontWeight: 700, color: '#065f46' }}>Verify & Approve</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Approve this milestone stage</div>
-            </div>
-
-            <div
-              style={{
-                border: verdict === 'CORRECTION_REQUIRED' ? '2px solid #ef4444' : '1px solid var(--border-color)',
-                backgroundColor: verdict === 'CORRECTION_REQUIRED' ? '#fef2f2' : 'var(--bg-surface)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1rem',
-                cursor: 'pointer',
-                textAlign: 'center',
-              }}
-              onClick={() => setVerdict('CORRECTION_REQUIRED')}
-            >
-              <AlertTriangle size={24} style={{ color: '#ef4444', margin: '0 auto 0.5rem auto' }} />
-              <div style={{ fontWeight: 700, color: '#991b1b' }}>Correction Required</div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Request student resubmission</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Select Predefined Feedback (Quick Academic Response)</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            {templates.map((tmpl) => (
-              <button
-                key={tmpl.id}
-                type="button"
-                className={`feedback-template-btn ${selectedTemplateId === tmpl.id ? 'active' : ''}`}
-                onClick={() => handleTemplateClick(tmpl)}
-              >
-                {tmpl.title}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Guide Remarks & Specific Feedback</label>
-          <textarea
-            className="form-control"
-            rows="4"
-            placeholder="Enter specific corrections, guidelines, or commendations for the student group..."
-            value={customRemarks}
-            onChange={(e) => setCustomRemarks(e.target.value)}
-          ></textarea>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className={`btn btn-${verdict === 'VERIFIED' ? 'success' : 'danger'}`}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Recording...' : verdict === 'VERIFIED' ? 'Confirm Verification' : 'Send Correction Notice'}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
+export default FileUploadModal;
