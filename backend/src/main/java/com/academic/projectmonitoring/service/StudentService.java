@@ -184,7 +184,7 @@ public class StudentService {
         submission.setCurrentVersion(versionNumber);
         submission.setStatus(isResubmission ? SubmissionStatus.RESUBMITTED : SubmissionStatus.ONLINE_SUBMITTED);
         submission.setLastSubmittedAt(LocalDateTime.now());
-        submissionRepository.save(submission);
+        submission = submissionRepository.saveAndFlush(submission);
 
         pm.setStatus(MilestoneStatus.SUBMITTED);
         projectMilestoneRepository.save(pm);
