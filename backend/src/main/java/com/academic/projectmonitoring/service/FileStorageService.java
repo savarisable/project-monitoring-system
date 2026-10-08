@@ -1,4 +1,4 @@
-﻿package com.academic.projectmonitoring.service;
+package com.academic.projectmonitoring.service;
 
 import com.academic.projectmonitoring.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,15 +21,10 @@ public class FileStorageService {
 
     private final Path fileStorageLocation;
     
-    // Comprehensive permitted academic deliverable extensions
     private final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
-        // Documents & Presentations
         "pdf", "doc", "docx", "ppt", "pptx", "txt", "rtf",
-        // Project Demo Videos
         "mp4", "mkv", "mov", "avi", "webm",
-        // Source Code & Project Archives
         "zip", "rar", "7z", "tar", "gz",
-        // Architecture Diagrams & Screenshots
         "png", "jpg", "jpeg", "webp", "gif"
     );
 
@@ -49,7 +44,6 @@ public class FileStorageService {
 
         String originalFileName = StringUtils.cleanPath(file.getOriginalFilename() != null ? file.getOriginalFilename() : "document");
 
-        // Security check
         if (originalFileName.contains("..")) {
             throw new BadRequestException("Filename contains invalid path sequence " + originalFileName);
         }
@@ -61,10 +55,9 @@ public class FileStorageService {
         }
 
         if (!ALLOWED_EXTENSIONS.contains(fileExtension)) {
-            throw new BadRequestException("Invalid file type (." + fileExtension + "). Supported formats: PDF, DOC, PPT, MP4 Video, ZIP, and PNG/JPG.");
+            throw new BadRequestException("Invalid file type (." + fileExtension + "). Supported: PDF, DOC, PPT, MP4 Video, ZIP, PNG/JPG.");
         }
 
-        // Clean name formatted with group and milestone
         String cleanMilestone = milestoneName.replaceAll("[^a-zA-Z0-9_-]", "_");
         String cleanGroup = groupCode.replaceAll("[^a-zA-Z0-9_-]", "_");
         String uniqueId = UUID.randomUUID().toString().substring(0, 8);

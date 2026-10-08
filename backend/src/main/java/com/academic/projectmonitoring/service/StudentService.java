@@ -1,4 +1,4 @@
-﻿package com.academic.projectmonitoring.service;
+package com.academic.projectmonitoring.service;
 
 import com.academic.projectmonitoring.dto.request.MarkOfflineSubmissionRequest;
 import com.academic.projectmonitoring.dto.request.StudentRequestDto;
@@ -180,7 +180,6 @@ public class StudentService {
 
         submission = submissionRepository.save(submission);
 
-        // Record version history
         SubmissionVersion version = new SubmissionVersion();
         version.setSubmission(submission);
         version.setVersionNumber(newVersionNumber);
@@ -192,7 +191,6 @@ public class StudentService {
         version.setRemarks(remarks);
         versionRepository.save(version);
 
-        // Notify Guide
         if (project.getGuide() != null && project.getGuide().getUser() != null) {
             notificationService.sendNotification(
                     project.getGuide().getUser().getId(),
@@ -202,7 +200,6 @@ public class StudentService {
             );
         }
 
-        // Notify All Group Members (Auto-Update)
         for (GroupMember member : group.getMembers()) {
             if (member.getStudent() != null && member.getStudent().getUser() != null && !member.getStudent().getId().equals(student.getId())) {
                 notificationService.sendNotification(
