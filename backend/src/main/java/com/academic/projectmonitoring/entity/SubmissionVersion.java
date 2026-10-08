@@ -14,7 +14,7 @@ public class SubmissionVersion {
     private Long id;
 
     @JsonIgnore
-    @ManyToOne(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "submission_id", nullable = false)
     private Submission submission;
 
@@ -37,7 +37,7 @@ public class SubmissionVersion {
     @Column(name = "student_notes", columnDefinition = "TEXT")
     private String studentNotes;
 
-    @ManyToOne(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "submitted_by", nullable = false)
     private User submittedBy;
 
