@@ -6,6 +6,10 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Builder;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
@@ -29,6 +33,18 @@ public class FileStorageService {
             "zip", "rar", "7z", "tar", "gz",
             "png", "jpg", "jpeg", "webp"
     );
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class StoredFileInfo {
+        private String fileName;
+        private String filePath;
+        private String fileUrl;
+        private Long fileSize;
+        private String contentType;
+    }
 
     @PostConstruct
     public void init() {
@@ -60,6 +76,17 @@ public class FileStorageService {
         } catch (IOException ex) {
             throw new RuntimeException("Could not store file " + originalFileName, ex);
         }
+    }
+
+    public StoredFileInfo storeFile(MultipartFile file, Long groupId, String milestoneCode, int versionNumber) {
+        String storedName = storeFile(file);
+        return StoredFileInfo.builder()
+                .fileName(file.getOriginalFilename())
+                .filePath(storedName)
+                .fileUrl("/api/files/" + storedName)
+                .fileSize(file.getSize())
+                .contentType(file.getContentType())
+                .build();
     }
 
     public Resource loadFileAsResource(String fileName) {
