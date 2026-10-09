@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Academic Project Report - Project Monitoring System</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 15mm 20mm 15mm;
+  }
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #111;
+    margin: 0;
+    padding: 20px;
+    background: #f8fafc;
+  }
+  .page-container {
+    max-width: 800px;
+    margin: auto;
+    background: #fff;
+    padding: 40px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  }
+  .print-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #0c2340;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    font-size: 14pt;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+  }
+  .print-btn:hover {
+    background: #c0262d;
+  }
+  @media print {
+    body { background: none; padding: 0; }
+    .page-container { box-shadow: none; padding: 0; max-width: 100%; }
+    .print-btn { display: none; }
+    .page-break { page-break-before: always; }
+  }
+  .title-page {
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+  }
+  .college-name {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #0c2340;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .sub-title {
+    font-size: 11pt;
+    color: #555;
+    margin-bottom: 30px;
+  }
+  .project-title {
+    font-size: 20pt;
+    font-weight: bold;
+    color: #c0262d;
+    margin: 40px 0 20px 0;
+    text-transform: uppercase;
+    border-top: 2px solid #0c2340;
+    border-bottom: 2px solid #0c2340;
+    padding: 15px 0;
+  }
+  h1 {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #0c2340;
+    border-bottom: 2px solid #c0262d;
+    padding-bottom: 6px;
+    margin-top: 30px;
+    text-transform: uppercase;
+  }
+  h2 {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #1a3a60;
+    margin-top: 20px;
+  }
+  h3 {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #333;
+  }
+  p, li {
+    text-align: justify;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 11pt;
+  }
+  th, td {
+    border: 1px solid #999;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background-color: #0c2340;
+    color: #fff;
+  }
+  tr:nth-child(even) {
+    background-color: #f2f5f9;
+  }
+  .box {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    border-left: 4px solid #0c2340;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Save as PDF / Print</button>
+
+<div class="page-container">
+
+  <!-- TITLE PAGE -->
+  <div class="title-page">
+    <div class="college-name">P. R. Pote Patil College of Engineering & Management, Amravati</div>
+    <div class="sub-title">An Autonomous Institute • NAAC Accredited 'A++' Grade • Department of Computer Science & Engineering</div>
+    
+    <div style="font-size: 13pt; margin-top: 30px;">A PROJECT REPORT ON</div>
+    <div class="project-title">Academic Project Monitoring & Evaluation Management System</div>
+    
+    <div style="font-size: 12pt; margin: 40px 0 10px 0;">Submitted in partial fulfillment of the requirements for the degree of</div>
+    <div style="font-size: 14pt; font-weight: bold;">Bachelor of Technology in Computer Science & Engineering</div>
+
+    <div style="display: flex; justify-content: space-between; margin-top: 60px; text-align: left; font-size: 11pt;">
+      <div>
+        <strong>Guided By:</strong><br>
+        Dr. P. M. Jawandhiya<br>
+        Prof. A. D. Chokhat (Project Head)
+      </div>
+      <div style="text-align: right;">
+        <strong>Academic Year:</strong><br>
+        2026 – 2027<br>
+        Autonomous Curriculum
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ABSTRACT -->
+  <h1>Abstract</h1>
+  <p>In contemporary higher education institutions, engineering capstone projects represent a critical milestone in assessing student technical competency, teamwork, and problem-solving abilities. However, conventional manual or semi-automated project management mechanisms—relying on paper registers, fragmented email threads, and generic shared folders—suffer from severe transparency deficits, unauthorized milestone submissions, lack of real-time progress visibility, and administrative overhead during continuous evaluation.</p>
+  <p>To resolve these challenges, this project presents the <strong>Centralized Academic Project Monitoring System</strong>, a cloud-native, role-based platform engineered specifically for autonomous engineering colleges. Developed using a robust Spring Boot backend and a reactive modern frontend, the system streamlines the complete project lifecycle across 38 project batches. Key architectural highlights include:</p>
+  <ul>
+    <li><strong>Leader-Controlled Submission with Automated Group Synchronization</strong>: Enforcing group-level milestone deliverables while keeping all individual team members synchronized in real time.</li>
+    <li><strong>Multi-Format High-Capacity Storage (100MB)</strong>: Native support for executable ZIP archives, technical PDFs, and MP4 screen recordings.</li>
+    <li><strong>Role-Based Governance Matrix</strong>: Granular security boundaries separating Student Leaders, Team Members, Faculty Guides, and Project Coordinators/HODs.</li>
+    <li><strong>Autonomous Institute Branding</strong>: Mobile-first responsive interface adhering to institutional design standards.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- CHAPTER 1: INTRODUCTION -->
+  <h1>Chapter 1: Introduction</h1>
+  <h2>1.1 Background and Context</h2>
+  <p>Final-year engineering projects demand continuous, phased monitoring across multiple milestones: Topic Selection, Literature Review, Requirement Analysis, Architecture Design, Implementation, Code Review, Testing, and Final Demonstration. Managing 38+ project groups (150+ students) across multiple faculty guides requires a centralized, transparent digital record.</p>
+
+  <h2>1.2 Problem Statement</h2>
+  <p>Existing academic project workflows suffer from four major bottlenecks:</p>
+  <ul>
+    <li><strong>Disorganized Submissions</strong>: Files submitted via email lack version control and metadata (timestamp, file hash, group ID).</li>
+    <li><strong>Unequal Accountability</strong>: Difficult to determine whether a document was submitted with team consensus or individually.</li>
+    <li><strong>Evaluation Opacity</strong>: Faculty rubrics, marks, and feedback are often inaccessible to students until final semester results.</li>
+    <li><strong>Format Restrictions</strong>: Traditional LMS solutions block large demonstration videos (<code>.mp4</code>) and source code archives (<code>.zip</code>), restricting evaluation to static documents.</li>
+  </ul>
+
+  <h2>1.3 Objectives of the Proposed System</h2>
+  <ul>
+    <li><strong>Centralize Lifecycle Management</strong>: Unify project registration, guide allocation, milestone tracking, and score calculation under a single portal.</li>
+    <li><strong>Enforce Group Governance</strong>: Allow only verified Group Leaders (or authorized delegates) to submit project deliverables, automatically updating the entire group's dashboard upon submission.</li>
+    <li><strong>Facilitate Rich Media Evaluation</strong>: Enable direct streaming and download of high-resolution screen recordings, presentations, and code packages up to 100MB.</li>
+    <li><strong>Provide Real-Time Institutional Analytics</strong>: Equip the Project Head and HOD with batch-wide performance metrics, pending reviews, and milestone completion percentages.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- CHAPTER 2: SYSTEM ARCHITECTURE & ROLES -->
+  <h1>Chapter 2: System Architecture & Role Matrix</h1>
+  <h2>2.1 Role-Based Access Control (RBAC)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Role</th>
+        <th>Portal Access</th>
+        <th>Key Responsibilities & Permissions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Student Leader</strong></td>
+        <td><code>/student/*</code></td>
+        <td>Upload 100MB MP4/ZIP/PDF deliverables, delegate upload rights, view synced marks.</td>
+      </tr>
+      <tr>
+        <td><strong>Student Member</strong></td>
+        <td><code>/student/*</code></td>
+        <td>Auto-synced read access to submissions, view guide feedback, maintain work logs.</td>
+      </tr>
+      <tr>
+        <td><strong>Faculty Guide</strong></td>
+        <td><code>/guide/*</code></td>
+        <td>Review allocated batches (out of 38), evaluate code & video demos, assign scores.</td>
+      </tr>
+      <tr>
+        <td><strong>Project Head / HOD</strong></td>
+        <td><code>/project-head/*</code></td>
+        <td>Batch-wide governance, guide allocation, progress analytics, rubric oversight.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2.2 Multi-Tier Technology Architecture</h2>
+  <div class="box">
+    <strong>Frontend Layer</strong>: React 18, Vite, Tailwind CSS, Responsive Mobile Navigation (Deployed on Vercel CDN)<br>
+    <strong>Backend Layer</strong>: Java 17, Spring Boot 3.5.5, Spring Security, JWT (HMAC-SHA256), Hibernate/JPA (Deployed via Docker on Render Cloud)<br>
+    <strong>Persistence Layer</strong>: Relational Database with persistent volume mounting for 100MB media assets.
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- CHAPTER 3: IMPLEMENTATION & VERIFICATION -->
+  <h1>Chapter 3: Implementation & Cloud Deployment</h1>
+  <h2>3.1 Key Modules Implemented</h2>
+  <ul>
+    <li><strong>File Storage Engine</strong>: Configured multipart limits (100MB) supporting MP4, MKV, ZIP, RAR, PDF, DOCX, and PPTX with UUID sanitization.</li>
+    <li><strong>Group Auto-Synchronization</strong>: Deliverables submitted by the leader update the database at the group level, immediately displaying verified status to all team members.</li>
+    <li><strong>Institute Header UI</strong>: Mobile-first responsive header matching official institute branding (Navy Blue <code>#0c2340</code>, Crimson Red divider <code>#c0262d</code>, NAAC A++ accreditation seal).</li>
+  </ul>
+
+  <h2>3.2 Live Cloud Deployment Status</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Hosting Platform</th>
+        <th>Live Production URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Backend API</strong></td>
+        <td>Render (Docker Container)</td>
+        <td><code>https://project-monitoring-system-rsab.onrender.com</code></td>
+      </tr>
+      <tr>
+        <td><strong>Frontend Web App</strong></td>
+        <td>Vercel (Edge Network)</td>
+        <td><code>https://project-monitoring-system-alpha.vercel.app</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3.3 Conclusion</h2>
+  <p>The Centralized Academic Project Monitoring System successfully modernizes project lifecycle tracking for P. R. Pote Patil College of Engineering & Management. By replacing manual paperwork with automated role governance, 100MB multimedia submissions, and real-time team synchronization, the platform ensures transparency, academic rigor, and effortless evaluation.</p>
+
+</div>
+
+</body>
+</html>
